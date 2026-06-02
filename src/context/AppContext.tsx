@@ -8,12 +8,13 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { useAppData } from '@/hooks/useAppData'
 import { findMemberByName } from '@/lib/assignment-rules'
-import { createWeeklyProgram, getMondayOfWeek, sortMembersByName } from '@/lib/program-utils'
+import { createWeeklyProgram, getMondayOfWeek, sortMembersByName, sortPositionsByName } from '@/lib/program-utils'
 import type {
   AppData,
   AppSettings,
   DayEvent,
   Member,
+  MemberPosition,
   Ministry,
   WeeklyProgram,
 } from '@/types'
@@ -22,6 +23,7 @@ interface AppContextValue {
   data: AppData
   members: Member[]
   ministries: Ministry[]
+  positions: MemberPosition[]
   programs: WeeklyProgram[]
   settings: AppSettings
   loading: boolean
@@ -35,6 +37,9 @@ interface AppContextValue {
   addMinistry: (name: string, description?: string) => Ministry
   updateMinistry: (id: string, updates: Partial<Ministry>) => void
   deleteMinistry: (id: string) => void
+  addPosition: (name: string) => MemberPosition
+  updatePosition: (id: string, updates: Partial<MemberPosition>) => void
+  deletePosition: (id: string) => void
   updateSettings: (updates: Partial<AppSettings>) => void
   createProgram: (weekStartDate?: string, monthlyTheme?: string) => WeeklyProgram
   updateProgram: (program: WeeklyProgram) => void
@@ -143,6 +148,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [updateData],
   )
 
+  const addPosition = useCallback(
+    (name: string): MemberPosition => {
+      const position: MemberPosition = {
+        id: uuidv4(),
+        name: name.trim(),
+        active: true,
+      }
+      updateData((prev) => ({ ...prev, positions: [...prev.positions, position] }))
+      return position
+    },
+    [updateData],
+  )
+
+  const updatePosition = useCallback(
+    (id: string, updates: Partial<MemberPosition>) => {
+      updateData((prev) => ({
+        ...prev,
+        positions: prev.positions.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      }))
+    },
+    [updateData],
+  )
+
+  const deletePosition = useCallback(
+    (id: string) => {
+      updateData((prev) => ({
+        ...prev,
+        positions: prev.positions.filter((p) => p.id !== id),
+        members: prev.members.map((m) =>
+          m.positionId === id ? { ...m, positionId: undefined } : m,
+        ),
+      }))
+    },
+    [updateData],
+  )
+
   const updateSettings = useCallback(
     (updates: Partial<AppSettings>) => {
       updateData((prev) => ({
@@ -198,6 +239,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       data,
       members: sortMembersByName(data.members),
       ministries: data.ministries.filter((m) => m.active),
+      positions: sortPositionsByName(data.positions.filter((p) => p.active)),
       programs: data.programs,
       settings: data.settings,
       loading,
@@ -211,6 +253,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addMinistry,
       updateMinistry,
       deleteMinistry,
+      addPosition,
+      updatePosition,
+      deletePosition,
       updateSettings,
       createProgram,
       updateProgram,
@@ -230,6 +275,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addMinistry,
       updateMinistry,
       deleteMinistry,
+      addPosition,
+      updatePosition,
+      deletePosition,
       updateSettings,
       createProgram,
       updateProgram,

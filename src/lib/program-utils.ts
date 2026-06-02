@@ -3,11 +3,13 @@ import { es } from 'date-fns/locale'
 import { v4 as uuidv4 } from 'uuid'
 import {
   DAY_NAMES,
+  DEFAULT_MEMBER_POSITIONS,
   DEFAULT_MINISTRIES,
   DEFAULT_SETTINGS,
   type AppData,
   type DayEvent,
   type Member,
+  type MemberPosition,
   type ProgramDay,
   type WeeklyProgram,
 } from '@/types'
@@ -69,6 +71,7 @@ export function getDefaultAppData(): AppData {
   return {
     members: [],
     ministries: DEFAULT_MINISTRIES,
+    positions: DEFAULT_MEMBER_POSITIONS,
     programs: [],
     settings: { ...DEFAULT_SETTINGS },
   }
@@ -82,6 +85,20 @@ export function sortMembersByName(members: Member[]): Member[] {
   return [...members].sort((a, b) =>
     a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
   )
+}
+
+export function sortPositionsByName(positions: MemberPosition[]): MemberPosition[] {
+  return [...positions].sort((a, b) =>
+    a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
+  )
+}
+
+export function getPositionName(
+  positions: MemberPosition[],
+  positionId?: string,
+): string | undefined {
+  if (!positionId) return undefined
+  return positions.find((p) => p.id === positionId)?.name
 }
 
 export function formatNamesList(names: string[]): string {

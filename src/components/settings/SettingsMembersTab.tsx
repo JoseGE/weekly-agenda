@@ -1,24 +1,33 @@
 import { useMemo, useState } from 'react'
-import { Cake, ChevronDown, MapPin, Plus, Search, Trash2, UserPlus } from 'lucide-react'
+import { BadgeCheck, Cake, ChevronDown, MapPin, Plus, Search, Trash2, UserPlus } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { formatProgramDate } from '@/lib/program-utils'
+import { formatProgramDate, getPositionName } from '@/lib/program-utils'
 import { cn } from '@/lib/utils'
-import type { Member } from '@/types'
+import type { Member, MemberPosition } from '@/types'
 
 type MemberFilter = 'all' | 'active' | 'inactive'
 
-function memberMatchesSearch(member: Member, query: string) {
+function memberMatchesSearch(member: Member, query: string, positions: MemberPosition[]) {
   const q = query.trim().toLowerCase()
   if (!q) return true
+  const positionName = getPositionName(positions, member.positionId)?.toLowerCase() ?? ''
   return (
     member.name.toLowerCase().includes(q) ||
-    (member.address?.toLowerCase().includes(q) ?? false)
+    (member.address?.toLowerCase().includes(q) ?? false) ||
+    positionName.includes(q)
   )
 }
 
@@ -26,12 +35,32 @@ function MemberRow({
   member,
   expanded,
   onToggle,
+  positions,
+  allPositions,
 }: {
   member: Member
   expanded: boolean
   onToggle: () => void
+  positions: MemberPosition[]
+  allPositions: MemberPosition[]
 }) {
   const { updateMember, deleteMember } = useApp()
+  const positionName = getPositionName(allPositions, member.positionId)
+  const selectablePositions = useMemo(() => {
+    if (!member.positionId || positions.some((p) => p.id === member.positionId)) {
+      return positions
+    }
+    const assigned = allPositions.find((p) => p.id === member.positionId)
+    return assigned ? [...positions, assigned] : positions
+  }, [positions, allPositions, member.positionId])
+  const subtitleParts: string[] = []
+  if (positionName) subtitleParts.push(positionName)
+  if (member.birthDate) {
+    subtitleParts.push(`Cumpleaños: ${formatProgramDate(member.birthDate.slice(0, 10))}`)
+  } else if (member.address?.trim()) {
+    subtitleParts.push(member.address.trim())
+  }
+  const subtitle = subtitleParts.join(' · ') || 'Sin datos adicionales'
 
   return (
     <div className="rounded-xl border border-stone-200/70 bg-white/90">
@@ -45,12 +74,13 @@ function MemberRow({
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-stone-900">{member.name || 'Sin nombre'}</p>
-          <p className="truncate text-xs text-stone-500">
-            {member.birthDate
-              ? `Cumpleaños: ${formatProgramDate(member.birthDate.slice(0, 10))}`
-              : member.address?.trim() || 'Sin datos adicionales'}
-          </p>
+          <p className="truncate text-xs text-stone-500">{subtitle}</p>
         </div>
+        {positionName && (
+          <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
+            {positionName}
+          </Badge>
+        )}
         <Badge variant={member.active ? 'secondary' : 'outline'}>
           {member.active ? 'Activo' : 'Inactivo'}
         </Badge>
@@ -68,6 +98,33 @@ function MemberRow({
               onChange={(e) => updateMember(member.id, { name: e.target.value })}
               placeholder="Nombre completo"
             />
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <BadgeCheck className="h-3.5 w-3.5" />
+              Cargo
+            </Label>
+            <Select
+              value={member.positionId ?? '__none__'}
+              onValueChange={(value) =>
+                updateMember(member.id, {
+                  positionId: value === '__none__' ? undefined : value,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sin cargo asignado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin cargo</SelectItem>
+                {selectablePositions.map((position) => (
+                  <SelectItem key={position.id} value={position.id}>
+                    {position.name}
+                    {!position.active ? ' (inactivo)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -124,7 +181,7 @@ function MemberRow({
 }
 
 export function SettingsMembersTab() {
-  const { members, addMember } = useApp()
+  const { members, positions, data, addMember } = useApp()
   const [newMemberName, setNewMemberName] = useState('')
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<MemberFilter>('active')
@@ -134,9 +191,9 @@ export function SettingsMembersTab() {
     return members.filter((member) => {
       if (filter === 'active' && !member.active) return false
       if (filter === 'inactive' && member.active) return false
-      return memberMatchesSearch(member, search)
+      return memberMatchesSearch(member, search, data.positions)
     })
-  }, [members, filter, search])
+  }, [members, filter, search, data.positions])
 
   const handleAddMember = () => {
     if (!newMemberName.trim()) return
@@ -184,7 +241,7 @@ export function SettingsMembersTab() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
           <Input
             className="pl-9"
-            placeholder="Buscar por nombre o dirección..."
+            placeholder="Buscar por nombre, cargo o dirección..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -234,6 +291,8 @@ export function SettingsMembersTab() {
               key={member.id}
               member={member}
               expanded={expandedId === member.id}
+              positions={positions}
+              allPositions={data.positions}
               onToggle={() =>
                 setExpandedId((current) => (current === member.id ? null : member.id))
               }

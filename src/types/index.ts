@@ -45,6 +45,13 @@ export interface Member {
   active: boolean
   address?: string
   birthDate?: string
+  positionId?: string
+}
+
+export interface MemberPosition {
+  id: string
+  name: string
+  active: boolean
 }
 
 export interface Ministry {
@@ -96,6 +103,7 @@ export interface AppSettings {
 export interface AppData {
   members: Member[]
   ministries: Ministry[]
+  positions: MemberPosition[]
   programs: WeeklyProgram[]
   settings: AppSettings
 }
@@ -112,6 +120,28 @@ export const DEFAULT_MINISTRIES: Ministry[] = [
   { id: 'jovenes', name: 'Ministerio de los Jóvenes', active: true },
   { id: 'infantil', name: 'Ministerio Infantil', active: true },
   { id: 'social', name: 'Ministerio de Ayuda Social', active: true },
+]
+
+export const DEFAULT_MEMBER_POSITIONS: MemberPosition[] = [
+  { id: 'pastor', name: 'Pastor/a', active: true },
+  { id: 'pastor-asociado', name: 'Pastor/a Asociado', active: true },
+  { id: 'presbitero', name: 'Presbítero', active: true },
+  { id: 'presidente-damas', name: 'Presidente de damas', active: true },
+  { id: 'presidente-caballeros', name: 'Presidente de caballeros', active: true },
+  { id: 'secretaria-damas', name: 'Secretaria de damas', active: true },
+  { id: 'secretario-caballeros', name: 'Secretario de caballeros', active: true },
+  { id: 'evangelista', name: 'Evangelista', active: true },
+  { id: 'vicepresidente-damas', name: 'Vicepresidente de damas', active: true },
+  { id: 'vicepresidente-caballeros', name: 'Vicepresidente de caballeros', active: true },
+  { id: 'vicepresidente-jovenes', name: 'Vicepresidente de jóvenes', active: true },
+  { id: 'presidente-jovenes', name: 'Presidente de jóvenes', active: true },
+  { id: 'secretario-jovenes', name: 'Secretario de jóvenes', active: true },
+  { id: 'maestro', name: 'Maestro', active: true },
+  { id: 'misionero', name: 'Misionero/a', active: true },
+  { id: 'diacono', name: 'Diácono/a', active: true },
+  { id: 'obrero', name: 'Obrero', active: true },
+  { id: 'tesorero', name: 'Tesorero', active: true },
+  { id: 'secretario-general', name: 'Secretario general', active: true },
 ]
 
 export const STORAGE_KEY = 'weekly-agenda-data'

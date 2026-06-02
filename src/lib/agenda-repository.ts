@@ -15,6 +15,10 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
       Array.isArray(raw.ministries) && raw.ministries.length > 0
         ? raw.ministries
         : defaults.ministries,
+    positions:
+      Array.isArray(raw.positions) && raw.positions.length > 0
+        ? raw.positions
+        : defaults.positions,
     programs: Array.isArray(raw.programs) ? raw.programs : defaults.programs,
     settings: { ...defaults.settings, ...raw.settings },
   }
