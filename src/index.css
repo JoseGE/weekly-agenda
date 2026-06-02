@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #f5f0e6;
+  --color-church-gold: #c47a2c;
+  --color-church-teal: #2a8a8a;
+  --color-church-red: #c0392b;
+}
+
+body {
+  @apply bg-stone-50 text-stone-900 antialiased;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
