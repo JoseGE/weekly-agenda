@@ -16,6 +16,7 @@ import type {
   Member,
   MemberPosition,
   Ministry,
+  WeekTemplateDay,
   WeeklyProgram,
 } from '@/types'
 
@@ -40,6 +41,7 @@ interface AppContextValue {
   addPosition: (name: string) => MemberPosition
   updatePosition: (id: string, updates: Partial<MemberPosition>) => void
   deletePosition: (id: string) => void
+  updateWeekTemplate: (template: WeekTemplateDay[]) => void
   updateSettings: (updates: Partial<AppSettings>) => void
   createProgram: (weekStartDate?: string, monthlyTheme?: string) => WeeklyProgram
   updateProgram: (program: WeeklyProgram) => void
@@ -184,6 +186,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [updateData],
   )
 
+  const updateWeekTemplate = useCallback(
+    (template: WeekTemplateDay[]) => {
+      updateData((prev) => ({ ...prev, weekTemplate: template }))
+    },
+    [updateData],
+  )
+
   const updateSettings = useCallback(
     (updates: Partial<AppSettings>) => {
       updateData((prev) => ({
@@ -196,16 +205,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createProgram = useCallback(
     (weekStartDate?: string, monthlyTheme?: string): WeeklyProgram => {
-      const monday = weekStartDate ?? getMondayOfWeek().toISOString().slice(0, 10)
       const program = createWeeklyProgram(
-        monday,
+        weekStartDate ?? getMondayOfWeek().toISOString().slice(0, 10),
         data.settings.churchName,
         monthlyTheme ?? data.settings.defaultMonthlyTheme,
+        data.weekTemplate,
       )
       updateData((prev) => ({ ...prev, programs: [program, ...prev.programs] }))
       return program
     },
-    [data.settings.churchName, data.settings.defaultMonthlyTheme, updateData],
+    [data.settings.churchName, data.settings.defaultMonthlyTheme, data.weekTemplate, updateData],
   )
 
   const updateProgram = useCallback(
@@ -256,6 +265,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPosition,
       updatePosition,
       deletePosition,
+      updateWeekTemplate,
       updateSettings,
       createProgram,
       updateProgram,
@@ -278,6 +288,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPosition,
       updatePosition,
       deletePosition,
+      updateWeekTemplate,
       updateSettings,
       createProgram,
       updateProgram,

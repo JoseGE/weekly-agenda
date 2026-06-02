@@ -20,6 +20,10 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
         ? raw.positions
         : defaults.positions,
     programs: Array.isArray(raw.programs) ? raw.programs : defaults.programs,
+    weekTemplate:
+      Array.isArray(raw.weekTemplate) && raw.weekTemplate.length === 7
+        ? raw.weekTemplate
+        : defaults.weekTemplate,
     settings: { ...defaults.settings, ...raw.settings },
   }
 }

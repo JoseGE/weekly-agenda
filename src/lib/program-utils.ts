@@ -11,6 +11,8 @@ import {
   type Member,
   type MemberPosition,
   type ProgramDay,
+  type WeekTemplateDay,
+  type WeekTemplateEvent,
   type WeeklyProgram,
 } from '@/types'
 
@@ -40,6 +42,59 @@ export function createEmptyEvent(): DayEvent {
   }
 }
 
+export function createEmptyTemplateEvent(): WeekTemplateEvent {
+  return {
+    id: uuidv4(),
+    time: '',
+    title: '',
+    location: '',
+    isSpecial: false,
+    isSimpleAnnouncement: false,
+  }
+}
+
+export function createEmptyWeekTemplate(): WeekTemplateDay[] {
+  return DAY_NAMES.map((_, dayIndex) => ({ dayIndex, events: [] }))
+}
+
+export function templateEventToDayEvent(template: WeekTemplateEvent): DayEvent {
+  return {
+    id: uuidv4(),
+    time: template.time,
+    title: template.title,
+    location: template.location ?? '',
+    isSpecial: template.isSpecial,
+    isSimpleAnnouncement: template.isSimpleAnnouncement,
+    ministryId: template.ministryId,
+    assignments: [],
+  }
+}
+
+export function buildProgramDaysFromTemplate(
+  weekStartDate: string,
+  template: WeekTemplateDay[],
+): ProgramDay[] {
+  const baseDays = createEmptyDays(weekStartDate)
+  return baseDays.map((day) => {
+    const templateDay = template.find((entry) => entry.dayIndex === day.dayIndex)
+    return {
+      ...day,
+      events: (templateDay?.events ?? []).map(templateEventToDayEvent),
+    }
+  })
+}
+
+export function findProgramForWeek(
+  programs: WeeklyProgram[],
+  weekStartDate: string,
+): WeeklyProgram | undefined {
+  return programs.find((program) => program.weekStartDate === weekStartDate)
+}
+
+export function normalizeWeekStartDate(dateStr: string): string {
+  return getMondayOfWeek(new Date(dateStr + 'T12:00:00')).toISOString().slice(0, 10)
+}
+
 export function createEmptyDays(weekStartDate: string): ProgramDay[] {
   const start = new Date(weekStartDate + 'T12:00:00')
   return DAY_NAMES.map((_, index) => ({
@@ -53,17 +108,22 @@ export function createWeeklyProgram(
   weekStartDate: string,
   churchName: string,
   monthlyTheme: string,
+  template?: WeekTemplateDay[],
 ): WeeklyProgram {
   const now = new Date().toISOString()
+  const monday = normalizeWeekStartDate(weekStartDate)
   return {
     id: uuidv4(),
     churchName,
     monthlyTheme,
-    weekStartDate,
+    weekStartDate: monday,
     status: 'draft',
     createdAt: now,
     updatedAt: now,
-    days: createEmptyDays(weekStartDate),
+    days:
+      template && template.some((day) => day.events.length > 0)
+        ? buildProgramDaysFromTemplate(monday, template)
+        : createEmptyDays(monday),
   }
 }
 
@@ -73,6 +133,7 @@ export function getDefaultAppData(): AppData {
     ministries: DEFAULT_MINISTRIES,
     positions: DEFAULT_MEMBER_POSITIONS,
     programs: [],
+    weekTemplate: createEmptyWeekTemplate(),
     settings: { ...DEFAULT_SETTINGS },
   }
 }

@@ -67,6 +67,21 @@ export interface RoleAssignment {
   members: string[]
 }
 
+export interface WeekTemplateEvent {
+  id: string
+  time: string
+  title: string
+  location?: string
+  isSpecial: boolean
+  isSimpleAnnouncement: boolean
+  ministryId?: string
+}
+
+export interface WeekTemplateDay {
+  dayIndex: number
+  events: WeekTemplateEvent[]
+}
+
 export interface DayEvent {
   id: string
   time: string
@@ -105,6 +120,7 @@ export interface AppData {
   ministries: Ministry[]
   positions: MemberPosition[]
   programs: WeeklyProgram[]
+  weekTemplate: WeekTemplateDay[]
   settings: AppSettings
 }
 

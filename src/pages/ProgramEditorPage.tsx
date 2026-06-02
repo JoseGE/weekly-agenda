@@ -1,17 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, Plus } from 'lucide-react'
+import { ArrowLeft, Download, ImageDown, Plus } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { AssignmentCounter } from '@/components/AssignmentCounter'
 import { BirthdaysSection } from '@/components/BirthdaysSection'
 import { EventCard } from '@/components/EventCard'
+import { ProgramCompletenessPanel } from '@/components/ProgramCompletenessPanel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getPeopleAtLimit } from '@/lib/assignment-rules'
+import { downloadProgramImage } from '@/lib/download-program-image'
 import { downloadProgramPdf } from '@/lib/download-program-pdf'
+import { getProgramIssues, isProgramReadyToComplete } from '@/lib/program-validation'
 import { createEmptyEvent, formatProgramDate, getDayLabel } from '@/lib/program-utils'
 import { DAY_SHORT, type DayEvent, type ProgramDay } from '@/types'
 
@@ -22,6 +25,7 @@ export function ProgramEditorPage() {
   const program = id ? getProgram(id) : undefined
   const [activeDay, setActiveDay] = useState('0')
   const [generating, setGenerating] = useState(false)
+  const [generatingImage, setGeneratingImage] = useState(false)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
@@ -33,6 +37,13 @@ export function ProgramEditorPage() {
     () => (program ? getPeopleAtLimit(program) : []),
     [program],
   )
+
+  const programIssues = useMemo(
+    () => (program ? getProgramIssues(program) : []),
+    [program],
+  )
+
+  const readyToComplete = program ? isProgramReadyToComplete(program) : false
 
   if (!program) {
     return (
@@ -96,6 +107,31 @@ export function ProgramEditorPage() {
     }
   }
 
+  const handleDownloadImage = async () => {
+    setGeneratingImage(true)
+    try {
+      await downloadProgramImage(program, settings.churchName, members)
+    } finally {
+      setGeneratingImage(false)
+    }
+  }
+
+  const handleToggleComplete = () => {
+    if (program.status === 'complete') {
+      saveProgram({ status: 'draft' })
+      return
+    }
+
+    if (!readyToComplete) {
+      const proceed = confirm(
+        `Hay ${programIssues.length} pendiente${programIssues.length !== 1 ? 's' : ''} en el checklist.\n\n¿Marcar como completo de todos modos?`,
+      )
+      if (!proceed) return
+    }
+
+    saveProgram({ status: 'complete' })
+  }
+
   return (
     <div className="min-w-0 max-w-full space-y-6 page-enter">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -114,11 +150,18 @@ export function ProgramEditorPage() {
           <Button
             variant="outline"
             className="w-full sm:w-auto"
-            onClick={() =>
-              saveProgram({ status: program.status === 'complete' ? 'draft' : 'complete' })
-            }
+            onClick={handleToggleComplete}
           >
             {program.status === 'complete' ? 'Marcar borrador' : 'Marcar completo'}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleDownloadImage}
+            disabled={generatingImage}
+          >
+            <ImageDown className="h-4 w-4" />
+            {generatingImage ? 'Generando...' : 'WhatsApp'}
           </Button>
           <Button onClick={handleDownloadPdf} disabled={generating} className="w-full sm:w-auto">
             <Download className="h-4 w-4" />
@@ -245,6 +288,7 @@ export function ProgramEditorPage() {
         </div>
 
         <aside className="min-w-0 space-y-4">
+          <ProgramCompletenessPanel program={program} />
           <BirthdaysSection program={program} members={members} compact />
           <AssignmentCounter program={program} />
           {members.length === 0 && (
