@@ -34,13 +34,13 @@ function MemberRow({
   const { updateMember, deleteMember } = useApp()
 
   return (
-    <div className="rounded-lg border border-stone-200 bg-white">
+    <div className="rounded-xl border border-stone-200/70 bg-white/90">
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-stone-50"
       >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-semibold text-stone-600">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-navy-soft text-sm font-semibold text-navy-dark">
           {member.name.trim().charAt(0).toUpperCase() || '?'}
         </div>
         <div className="min-w-0 flex-1">
@@ -198,7 +198,7 @@ export function SettingsMembersTab() {
               className={cn(
                 'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                 filter === id
-                  ? 'bg-stone-900 text-white'
+                  ? 'bg-navy-dark text-white shadow-sm'
                   : 'text-stone-600 hover:bg-stone-100',
               )}
             >

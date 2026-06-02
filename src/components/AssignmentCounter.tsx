@@ -48,9 +48,9 @@ export function AssignmentCounter({ program }: AssignmentCounterProps) {
         {counts.map((person) => (
           <div
             key={person.name}
-            className="flex items-center justify-between rounded-md border border-stone-100 px-3 py-2 text-sm"
+            className="flex items-center justify-between rounded-lg border border-stone-100/80 bg-stone-50/50 px-3 py-2 text-sm"
           >
-            <span className={person.atLimit ? 'font-medium text-red-700' : 'text-stone-800'}>
+            <span className={person.atLimit ? 'font-semibold text-amber-800' : 'text-stone-800'}>
               {person.name}
             </span>
             <Badge variant={person.atLimit ? 'destructive' : person.count === 1 ? 'secondary' : 'warning'}>

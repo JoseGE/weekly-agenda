@@ -82,7 +82,7 @@ export function MemberPicker({
   }
 
   return (
-    <div ref={containerRef} className="relative space-y-2">
+    <div ref={containerRef} className="relative min-w-0 max-w-full space-y-2">
       <Input
         value={value}
         onChange={(e) => {
@@ -111,15 +111,15 @@ export function MemberPicker({
 
       {showSuggestions && (
         <ul
-          className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-stone-200 bg-white py-1 shadow-md"
+          className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-stone-200/80 bg-white/95 py-1 shadow-lg backdrop-blur-sm"
           role="listbox"
         >
           {filteredOptions.map(({ member, count, atLimit: optionAtLimit }) => (
             <li key={member.id} role="option">
               <button
                 type="button"
-                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-stone-100 ${
-                  optionAtLimit ? 'text-amber-800' : ''
+                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-navy-soft ${
+                  optionAtLimit ? 'text-amber-800' : 'text-stone-800'
                 }`}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => selectMember(member.name)}

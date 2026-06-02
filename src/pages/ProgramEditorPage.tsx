@@ -97,34 +97,38 @@ export function ProgramEditorPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Button asChild variant="ghost" size="sm">
+    <div className="min-w-0 max-w-full space-y-6 page-enter">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button asChild variant="ghost" size="sm" className="self-start">
           <Link to="/">
             <ArrowLeft className="h-4 w-4" />
             Volver
           </Link>
         </Button>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
           {atLimitPeople.length > 0 && (
-            <Badge variant="warning">{atLimitPeople.length} personas al límite esta semana</Badge>
+            <Badge variant="warning" className="w-fit whitespace-normal">
+              {atLimitPeople.length} al límite
+            </Badge>
           )}
           <Button
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() =>
               saveProgram({ status: program.status === 'complete' ? 'draft' : 'complete' })
             }
           >
             {program.status === 'complete' ? 'Marcar borrador' : 'Marcar completo'}
           </Button>
-          <Button onClick={handleDownloadPdf} disabled={generating}>
+          <Button onClick={handleDownloadPdf} disabled={generating} className="w-full sm:w-auto">
             <Download className="h-4 w-4" />
             {generating ? 'Generando...' : 'Descargar PDF'}
           </Button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-stone-200 bg-white p-6">
+      <div className="app-panel overflow-hidden">
+        <div className="app-accent-bar mb-4" />
         <div className="space-y-2">
           <Label htmlFor="theme">Tema del mes</Label>
           <Input
@@ -134,38 +138,47 @@ export function ProgramEditorPage() {
             placeholder="Ej: Junio: Mes de ayuno y oración"
           />
         </div>
-        <p className="mt-3 text-sm text-stone-500">
+        <p className="mt-3 break-words text-sm text-stone-500">
           {settings.churchName} · Semana del {formatProgramDate(program.weekStartDate)}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <div>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0">
           <Tabs value={activeDay} onValueChange={setActiveDay}>
-            <TabsList className="flex h-auto w-full flex-wrap">
-              {program.days.map((day) => (
-                <TabsTrigger key={day.dayIndex} value={String(day.dayIndex)} className="flex-1">
-                  {DAY_SHORT[day.dayIndex]}
-                  {day.events.length > 0 && (
-                    <span className="ml-1 rounded-full bg-stone-200 px-1.5 text-xs">
-                      {day.events.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="-mx-1 overflow-x-auto overscroll-x-contain pb-1">
+              <TabsList className="inline-flex h-auto w-max min-w-full flex-nowrap gap-1">
+                {program.days.map((day) => (
+                  <TabsTrigger
+                    key={day.dayIndex}
+                    value={String(day.dayIndex)}
+                    className="shrink-0 gap-1 px-3 py-2"
+                  >
+                    {DAY_SHORT[day.dayIndex]}
+                    {day.events.length > 0 && (
+                      <span className="rounded-full bg-navy-soft px-1.5 text-xs text-navy-dark">
+                        {day.events.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
             {program.days.map((day) => (
-              <TabsContent key={day.dayIndex} value={String(day.dayIndex)}>
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-lg font-semibold">{getDayLabel(day)}</h3>
-                  <div className="flex flex-wrap gap-2">
+              <TabsContent key={day.dayIndex} value={String(day.dayIndex)} className="min-w-0">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <h3 className="font-display text-lg font-semibold break-words text-navy-dark">
+                    {getDayLabel(day)}
+                  </h3>
+                  <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                     {day.events.length > 0 && (
                       <>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
+                          className="flex-1 sm:flex-none"
                           onClick={() =>
                             setExpandedEvents((prev) => {
                               const next = new Set(prev)
@@ -174,12 +187,13 @@ export function ProgramEditorPage() {
                             })
                           }
                         >
-                          Expandir todos
+                          Expandir
                         </Button>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
+                          className="flex-1 sm:flex-none"
                           onClick={() =>
                             setExpandedEvents((prev) => {
                               const next = new Set(prev)
@@ -188,11 +202,11 @@ export function ProgramEditorPage() {
                             })
                           }
                         >
-                          Colapsar todos
+                          Colapsar
                         </Button>
                       </>
                     )}
-                    <Button size="sm" onClick={() => addEvent(day.dayIndex)}>
+                    <Button size="sm" className="w-full sm:w-auto" onClick={() => addEvent(day.dayIndex)}>
                       <Plus className="h-4 w-4" />
                       Añadir evento
                     </Button>
@@ -200,7 +214,7 @@ export function ProgramEditorPage() {
                 </div>
 
                 {day.events.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-stone-300 py-12 text-center text-stone-500">
+                  <div className="rounded-xl border border-dashed border-stone-300/80 bg-white/50 py-12 text-center text-stone-500">
                     No hay eventos para este día.
                   </div>
                 ) : (
@@ -230,11 +244,11 @@ export function ProgramEditorPage() {
           </Tabs>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <BirthdaysSection program={program} members={members} compact />
           <AssignmentCounter program={program} />
           {members.length === 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <div className="rounded-xl border border-church-gold/30 bg-church-gold-soft/50 p-4 text-sm text-amber-900">
               No hay miembros registrados.{' '}
               <button
                 type="button"

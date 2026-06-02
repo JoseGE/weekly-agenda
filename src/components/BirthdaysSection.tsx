@@ -19,12 +19,12 @@ export function BirthdaysSection({ program, members, compact }: BirthdaysSection
 
   if (compact) {
     return (
-      <div className="rounded-lg border border-pink-200 bg-pink-50 p-3 text-sm">
-        <p className="mb-2 flex items-center gap-1.5 font-semibold text-pink-900">
+      <div className="rounded-xl border border-rose-200/80 bg-gradient-to-br from-rose-50 to-white p-3 text-sm shadow-sm">
+        <p className="mb-2 flex items-center gap-1.5 font-semibold text-rose-900">
           <Cake className="h-4 w-4" />
           Cumpleaños esta semana
         </p>
-        <ul className="space-y-1.5 text-pink-950">
+        <ul className="space-y-1.5 text-rose-950/90">
           {birthdays.map(({ day, members: dayMembers }) => (
             <li key={day.dayIndex}>
               <span className="font-medium">{formatBirthdayDayLabel(day)}:</span>{' '}
@@ -37,9 +37,9 @@ export function BirthdaysSection({ program, members, compact }: BirthdaysSection
   }
 
   return (
-    <Card className="border-pink-200 bg-pink-50/50">
+    <Card className="border-rose-200/80 bg-gradient-to-br from-rose-50/80 to-white">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base text-pink-900">
+        <CardTitle className="flex items-center gap-2 text-base text-rose-900">
           <Cake className="h-4 w-4" />
           Cumpleaños esta semana
         </CardTitle>
@@ -47,8 +47,8 @@ export function BirthdaysSection({ program, members, compact }: BirthdaysSection
       <CardContent className="space-y-2 text-sm">
         {birthdays.map(({ day, members: dayMembers }) => (
           <div key={day.dayIndex} className="flex flex-wrap gap-x-2 gap-y-1">
-            <span className="font-medium text-pink-900">{formatBirthdayDayLabel(day)}</span>
-            <span className="text-pink-950">{dayMembers.map((m) => m.name).join(', ')}</span>
+            <span className="font-medium text-rose-900">{formatBirthdayDayLabel(day)}</span>
+            <span className="text-rose-950/90">{dayMembers.map((m) => m.name).join(', ')}</span>
           </div>
         ))}
       </CardContent>

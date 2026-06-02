@@ -2,12 +2,99 @@
 
 @theme {
   --color-cream: #f5f0e6;
+  --color-cream-dark: #ebe4d6;
+  --color-paper: #faf8f4;
   --color-church-gold: #c47a2c;
+  --color-church-gold-light: #e8a54b;
+  --color-church-gold-soft: #fef7ed;
   --color-church-teal: #2a8a8a;
   --color-church-red: #c0392b;
+  --color-navy: #1a4d7c;
+  --color-navy-dark: #0f2d4a;
+  --color-navy-soft: #e8f0f7;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Source Sans 3", system-ui, sans-serif;
+  --shadow-card: 0 1px 2px rgb(15 45 74 / 0.04), 0 8px 24px rgb(15 45 74 / 0.06);
+  --shadow-card-hover: 0 4px 12px rgb(15 45 74 / 0.08), 0 16px 40px rgb(15 45 74 / 0.1);
+  --radius-card: 0.875rem;
 }
 
-body {
-  @apply bg-stone-50 text-stone-900 antialiased;
-  font-family: "Segoe UI", system-ui, sans-serif;
+@layer base {
+  * {
+    @apply border-stone-200/80;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  body {
+    @apply min-h-screen text-stone-800 antialiased;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    max-width: 100%;
+    background-color: var(--color-paper);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgb(196 122 44 / 0.08), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgb(26 77 124 / 0.06), transparent),
+      linear-gradient(180deg, var(--color-cream) 0%, var(--color-paper) 45%, #f3efe8 100%);
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    @apply tracking-tight text-navy-dark;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+}
+
+@layer utilities {
+  .app-card {
+    @apply max-w-full rounded-[var(--radius-card)] border border-stone-200/70 bg-white/90 shadow-[var(--shadow-card)] backdrop-blur-sm;
+  }
+
+  .app-card-hover {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:border-church-gold/25 hover:shadow-[var(--shadow-card-hover)];
+  }
+
+  .app-accent-bar {
+    @apply h-1 w-12 rounded-full bg-gradient-to-r from-church-gold to-church-gold-light;
+  }
+
+  .app-panel {
+    @apply max-w-full rounded-[var(--radius-card)] border border-stone-200/70 bg-white/85 p-4 shadow-[var(--shadow-card)] backdrop-blur-sm sm:p-6;
+  }
+
+  .page-enter {
+    animation: page-enter 0.45s ease-out both;
+  }
+
+  .stagger-1 {
+    animation-delay: 0.05s;
+  }
+  .stagger-2 {
+    animation-delay: 0.1s;
+  }
+  .stagger-3 {
+    animation-delay: 0.15s;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

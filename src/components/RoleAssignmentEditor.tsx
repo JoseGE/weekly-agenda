@@ -47,8 +47,8 @@ export function RoleAssignmentEditor({
   const availableRoles = FIXED_ROLES.filter((r) => !getAssignment(r.id))
 
   return (
-    <div className="space-y-4 rounded-md border border-stone-200 bg-stone-50 p-4">
-      <div className="flex items-center justify-between">
+    <div className="min-w-0 space-y-4 overflow-hidden rounded-md border border-stone-200 bg-stone-50 p-3 sm:p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Label className="text-sm font-semibold">Asignaciones de partes</Label>
         {availableRoles.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -78,10 +78,10 @@ export function RoleAssignmentEditor({
         if (!roleDef) return null
 
         return (
-          <div key={assignment.roleId} className="rounded-md border border-stone-200 bg-white p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{assignment.roleName}</span>
+          <div key={assignment.roleId} className="min-w-0 overflow-hidden rounded-md border border-stone-200 bg-white p-3">
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="font-medium break-words">{assignment.roleName}</span>
                 <Badge variant="outline" className="text-xs">
                   {roleDef.allowMultiple ? 'Varias personas' : 'Una persona'}
                 </Badge>

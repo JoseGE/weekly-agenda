@@ -40,8 +40,13 @@ export function EventCard({
   const update = (partial: Partial<DayEvent>) => onUpdate({ ...event, ...partial })
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
-      <div className="flex items-start gap-2 border-b border-stone-100 bg-stone-50/60 px-3 py-3">
+    <div className="w-full max-w-full overflow-hidden rounded-[var(--radius-card)] border border-stone-200/70 bg-white shadow-sm">
+      <div
+        className={cn(
+          'flex min-w-0 items-start gap-2 bg-white px-2 py-3 sm:px-3',
+          !collapsed && 'border-b border-stone-100',
+        )}
+      >
         <Button
           type="button"
           variant="ghost"
@@ -61,9 +66,11 @@ export function EventCard({
           className="min-w-0 flex-1 text-left"
           onClick={onToggleCollapsed}
         >
-          <p className="truncate text-sm font-medium text-stone-900">{getEventSummary(event)}</p>
+          <p className="line-clamp-2 break-words text-sm font-semibold text-navy-dark">
+            {getEventSummary(event)}
+          </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <Badge variant={event.isSpecial ? 'warning' : 'secondary'} className="text-xs">
+            <Badge variant={event.isSpecial ? 'warning' : 'outline'} className="text-xs">
               {event.isSpecial ? 'Especial' : 'Normal'}
             </Badge>
             {event.isSimpleAnnouncement && (
@@ -85,7 +92,7 @@ export function EventCard({
       </div>
 
       {!collapsed && (
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 overflow-hidden bg-white p-3 sm:p-4">
           <div className={`grid gap-4 ${event.isSimpleAnnouncement ? '' : 'md:grid-cols-2'}`}>
             {!event.isSimpleAnnouncement && (
               <div className="space-y-2">
@@ -140,16 +147,19 @@ export function EventCard({
             />
           </div>
 
-          <div className="flex flex-wrap gap-6">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+            <div className="flex min-w-0 items-start gap-2 sm:items-center">
               <Switch
                 id={`special-${event.id}`}
                 checked={event.isSpecial}
                 onCheckedChange={(checked) => update({ isSpecial: checked })}
+                className="mt-0.5 shrink-0 sm:mt-0"
               />
-              <Label htmlFor={`special-${event.id}`}>Texto especial (naranja en PDF)</Label>
+              <Label htmlFor={`special-${event.id}`} className="break-words leading-snug">
+                Texto especial (naranja en PDF)
+              </Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-start gap-2 sm:items-center">
               <Switch
                 id={`simple-${event.id}`}
                 checked={event.isSimpleAnnouncement}
@@ -160,8 +170,11 @@ export function EventCard({
                     time: checked ? '' : event.time,
                   })
                 }
+                className="mt-0.5 shrink-0 sm:mt-0"
               />
-              <Label htmlFor={`simple-${event.id}`}>Solo anuncio (sin horario ni partes)</Label>
+              <Label htmlFor={`simple-${event.id}`} className="break-words leading-snug">
+                Solo anuncio (sin horario ni partes)
+              </Label>
             </div>
           </div>
 

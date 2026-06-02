@@ -4,21 +4,24 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-church-gold/50 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-stone-900 text-white hover:bg-stone-800',
-        secondary: 'bg-stone-100 text-stone-900 hover:bg-stone-200',
-        outline: 'border border-stone-300 bg-white hover:bg-stone-50',
-        destructive: 'bg-red-600 text-white hover:bg-red-700',
-        ghost: 'hover:bg-stone-100',
-        link: 'text-church-gold underline-offset-4 hover:underline',
+        default:
+          'bg-navy-dark text-white shadow-sm hover:bg-navy hover:shadow-md active:scale-[0.98]',
+        secondary:
+          'bg-navy-soft text-navy-dark hover:bg-navy-soft/80',
+        outline:
+          'border border-stone-300/80 bg-white/80 hover:border-church-gold/40 hover:bg-church-gold-soft/50',
+        destructive: 'bg-church-red text-white hover:bg-red-700',
+        ghost: 'text-stone-600 hover:bg-stone-100 hover:text-navy-dark',
+        link: 'text-church-gold underline-offset-4 hover:text-church-gold-light hover:underline',
       },
       size: {
         default: 'h-10 px-4 py-2',
         sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-11 rounded-md px-8',
+        lg: 'h-11 rounded-lg px-8',
         icon: 'h-9 w-9',
       },
     },
