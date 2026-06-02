@@ -1,25 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type FocusEvent } from 'react'
 import { AlertTriangle, Plus, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useApp } from '@/context/AppContext'
 import { findMemberByName, getPersonCount, isPersonAtLimit } from '@/lib/assignment-rules'
 import { normalizeName, sortMembersByName } from '@/lib/program-utils'
 import type { Member, WeeklyProgram } from '@/types'
-
-function resolvePickerMode(value: string, members: Member[]): 'select' | 'free' {
-  if (!value.trim()) return 'select'
-  return findMemberByName(members, value) ? 'select' : 'free'
-}
 
 interface MemberPickerProps {
   program: WeeklyProgram
@@ -36,16 +24,18 @@ export function MemberPicker({
   value,
   onChange,
   exclude,
-  placeholder = 'Seleccionar o escribir nombre',
+  placeholder = 'Buscar o escribir nombre',
 }: MemberPickerProps) {
   const { ensureMember } = useApp()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+
   const activeMembers = useMemo(
     () => sortMembersByName(members.filter((m) => m.active)),
     [members],
   )
-  const [mode, setMode] = useState<'select' | 'free'>(() => resolvePickerMode(value, activeMembers))
 
-  const registerFreeTextMember = (name: string) => {
+  const registerMember = (name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
 
@@ -59,100 +49,104 @@ export function MemberPicker({
     ensureMember(trimmed)
   }
 
-  const currentCount = value.trim()
-    ? getPersonCount(program, value, exclude)
-    : 0
+  const selectOptions = useMemo(
+    () =>
+      activeMembers.map((member) => {
+        const count = getPersonCount(program, member.name, exclude)
+        return { member, count, atLimit: count >= 2 }
+      }),
+    [activeMembers, program, exclude],
+  )
+
+  const filteredOptions = useMemo(() => {
+    const query = normalizeName(value)
+    if (!query) return selectOptions
+    return selectOptions.filter(({ member }) => normalizeName(member.name).includes(query))
+  }, [selectOptions, value])
+
+  const currentCount = value.trim() ? getPersonCount(program, value, exclude) : 0
   const atLimit = value.trim() ? isPersonAtLimit(program, value, exclude) : false
   const matchedMember = value.trim() ? findMemberByName(members, value) : undefined
+  const showSuggestions = open && filteredOptions.length > 0
 
-  const selectOptions = activeMembers.map((member) => {
-    const count = getPersonCount(program, member.name, exclude)
-    const disabled = count >= 2
-    return { member, count, disabled }
-  })
-
-  const handleSelectChange = (memberId: string) => {
-    const member = activeMembers.find((m) => m.id === memberId)
-    if (member) onChange(member.name)
+  const selectMember = (name: string) => {
+    onChange(name)
+    registerMember(name)
+    setOpen(false)
   }
 
-  const selectedMemberId = activeMembers.find(
-    (m) => normalizeName(m.name) === normalizeName(value),
-  )?.id
-
-  const displayMode =
-    mode === 'select' && value.trim() && !selectedMemberId ? 'free' : mode
+  const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+    if (containerRef.current?.contains(event.relatedTarget as Node)) return
+    setOpen(false)
+    registerMember(value)
+  }
 
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={displayMode === 'select' ? 'default' : 'outline'}
-          onClick={() => {
-            if (value.trim()) registerFreeTextMember(value)
-            setMode('select')
-          }}
-        >
-          Lista
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={displayMode === 'free' ? 'default' : 'outline'}
-          onClick={() => setMode('free')}
-        >
-          Texto libre
-        </Button>
-      </div>
+    <div ref={containerRef} className="relative space-y-2">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={handleBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            registerMember(value)
+            setOpen(false)
+            ;(e.target as HTMLInputElement).blur()
+          }
+          if (e.key === 'Escape') {
+            setOpen(false)
+          }
+        }}
+        placeholder={placeholder}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={showSuggestions}
+        aria-autocomplete="list"
+      />
 
-      {displayMode === 'select' ? (
-        <Select
-          value={selectedMemberId}
-          onValueChange={handleSelectChange}
+      {showSuggestions && (
+        <ul
+          className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-stone-200 bg-white py-1 shadow-md"
+          role="listbox"
         >
-          <SelectTrigger>
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {selectOptions.map(({ member, count, disabled }) => (
-              <SelectItem key={member.id} value={member.id} disabled={disabled}>
-                {member.name}
-                {count > 0 && ` (${count}/2)`}
-                {disabled && ' — Límite alcanzado'}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={() => registerFreeTextMember(value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              registerFreeTextMember(value)
-              ;(e.target as HTMLInputElement).blur()
-            }
-          }}
-          placeholder="Escribir nombre..."
-        />
+          {filteredOptions.map(({ member, count, atLimit: optionAtLimit }) => (
+            <li key={member.id} role="option">
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-stone-100 ${
+                  optionAtLimit ? 'text-amber-800' : ''
+                }`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => selectMember(member.name)}
+              >
+                <span>{member.name}</span>
+                <span className={`text-xs ${optionAtLimit ? 'font-medium text-amber-700' : 'text-stone-500'}`}>
+                  {count > 0 && `${count}/2`}
+                  {optionAtLimit && ' · Al límite'}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {value.trim() && (
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant={atLimit ? 'destructive' : 'secondary'}>{currentCount}/2 esta semana</Badge>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant={atLimit ? 'warning' : 'secondary'}>{currentCount}/2 esta semana</Badge>
           {atLimit && (
-            <span className="flex items-center gap-1 text-red-600">
+            <span className="flex items-center gap-1 text-amber-700">
               <AlertTriangle className="h-3 w-3" />
-              Límite alcanzado
+              Ya tiene 2 apariciones esta semana
             </span>
           )}
-          {matchedMember && displayMode === 'free' && (
-            <span className="text-stone-500">Ya está en la lista de miembros</span>
-          )}
-          {!matchedMember && displayMode === 'free' && value.trim() && (
+          {matchedMember ? (
+            <span className="text-stone-500">Miembro registrado</span>
+          ) : (
             <span className="text-stone-500">Se guardará en miembros al salir del campo</span>
           )}
         </div>
