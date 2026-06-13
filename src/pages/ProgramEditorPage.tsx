@@ -15,13 +15,20 @@ import { getPeopleAtLimit } from '@/lib/assignment-rules'
 import { downloadProgramImage } from '@/lib/download-program-image'
 import { downloadProgramPdf } from '@/lib/download-program-pdf'
 import { getProgramIssues, isProgramReadyToComplete } from '@/lib/program-validation'
-import { createEmptyEvent, formatProgramDate, getDayLabel } from '@/lib/program-utils'
+import {
+  createEmptyEvent,
+  findProgramForWeek,
+  formatWeekRange,
+  getDayLabel,
+  normalizeWeekStartDate,
+  rescheduleProgramWeek,
+} from '@/lib/program-utils'
 import { DAY_SHORT, type DayEvent, type ProgramDay } from '@/types'
 
 export function ProgramEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { getProgram, updateProgram, members, settings } = useApp()
+  const { getProgram, updateProgram, programs, members, settings } = useApp()
   const program = id ? getProgram(id) : undefined
   const [activeDay, setActiveDay] = useState('0')
   const [generating, setGenerating] = useState(false)
@@ -58,6 +65,24 @@ export function ProgramEditorPage() {
 
   const saveProgram = (updates: Partial<typeof program>) => {
     updateProgram({ ...program, ...updates })
+  }
+
+  const handleWeekChange = (value: string) => {
+    const newWeekStart = normalizeWeekStartDate(value)
+    if (newWeekStart === program.weekStartDate) return
+
+    const existing = findProgramForWeek(
+      programs.filter((p) => p.id !== program.id),
+      newWeekStart,
+    )
+    if (existing) {
+      const proceed = confirm(
+        `Ya existe un programa para la semana del ${formatWeekRange(newWeekStart)}.\n\n¿Mover este programa a esa semana de todos modos?`,
+      )
+      if (!proceed) return
+    }
+
+    updateProgram(rescheduleProgramWeek(program, newWeekStart))
   }
 
   const updateDay = (dayIndex: number, day: ProgramDay) => {
@@ -172,18 +197,28 @@ export function ProgramEditorPage() {
 
       <div className="app-panel overflow-hidden">
         <div className="app-accent-bar mb-4" />
-        <div className="space-y-2">
-          <Label htmlFor="theme">Tema del mes</Label>
-          <Input
-            id="theme"
-            value={program.monthlyTheme}
-            onChange={(e) => saveProgram({ monthlyTheme: e.target.value })}
-            placeholder="Ej: Junio: Mes de ayuno y oración"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="week-start">Semana (lunes)</Label>
+            <Input
+              id="week-start"
+              type="date"
+              value={program.weekStartDate}
+              onChange={(e) => handleWeekChange(e.target.value)}
+            />
+            <p className="text-xs text-stone-500">{formatWeekRange(program.weekStartDate)}</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="theme">Tema del mes</Label>
+            <Input
+              id="theme"
+              value={program.monthlyTheme}
+              onChange={(e) => saveProgram({ monthlyTheme: e.target.value })}
+              placeholder="Ej: Junio: Mes de ayuno y oración"
+            />
+          </div>
         </div>
-        <p className="mt-3 break-words text-sm text-stone-500">
-          {settings.churchName} · Semana del {formatProgramDate(program.weekStartDate)}
-        </p>
+        <p className="mt-3 break-words text-sm text-stone-500">{settings.churchName}</p>
       </div>
 
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">

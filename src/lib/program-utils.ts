@@ -104,6 +104,24 @@ export function createEmptyDays(weekStartDate: string): ProgramDay[] {
   }))
 }
 
+export function rescheduleProgramWeek(
+  program: WeeklyProgram,
+  newWeekStartDate: string,
+): WeeklyProgram {
+  const monday = normalizeWeekStartDate(newWeekStartDate)
+  if (monday === program.weekStartDate) return program
+
+  const start = new Date(monday + 'T12:00:00')
+  return {
+    ...program,
+    weekStartDate: monday,
+    days: program.days.map((day) => ({
+      ...day,
+      date: format(addDays(start, day.dayIndex), 'yyyy-MM-dd'),
+    })),
+  }
+}
+
 export function createWeeklyProgram(
   weekStartDate: string,
   churchName: string,
