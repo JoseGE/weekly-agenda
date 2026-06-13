@@ -1,5 +1,6 @@
 import { insforge, isInsForgeConfigured } from '@/lib/insforge'
 import { getDefaultAppData } from '@/lib/program-utils'
+import { deduplicateAllMembers } from '@/lib/member-utils'
 import { STORAGE_KEY, type AppData } from '@/types'
 
 const STATE_ID = 'default'
@@ -9,7 +10,7 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
   const defaults = getDefaultAppData()
   if (!raw) return defaults
 
-  return {
+  const normalized: AppData = {
     members: Array.isArray(raw.members) ? raw.members : defaults.members,
     ministries:
       Array.isArray(raw.ministries) && raw.ministries.length > 0
@@ -26,6 +27,8 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
         : defaults.weekTemplate,
     settings: { ...defaults.settings, ...raw.settings },
   }
+
+  return deduplicateAllMembers(normalized)
 }
 
 function readLocalAppData(): AppData | null {

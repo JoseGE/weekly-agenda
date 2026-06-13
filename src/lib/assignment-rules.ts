@@ -1,4 +1,5 @@
 import type { WeeklyProgram } from '@/types'
+import { namesLikelyMatch } from '@/lib/member-utils'
 import { normalizeName } from '@/lib/program-utils'
 
 export interface PersonCount {
@@ -76,5 +77,7 @@ export function findMemberByName(
   name: string,
 ): { id: string; name: string; active: boolean } | undefined {
   const normalized = normalizeName(name)
-  return members.find((m) => normalizeName(m.name) === normalized)
+  const exact = members.find((member) => normalizeName(member.name) === normalized)
+  if (exact) return exact
+  return members.find((member) => namesLikelyMatch(member.name, name))
 }

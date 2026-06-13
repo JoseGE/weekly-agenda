@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState, type FocusEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type FocusEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, Plus, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,7 +29,11 @@ export function MemberPicker({
 }: MemberPickerProps) {
   const { ensureMember } = useApp()
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(
+    null,
+  )
 
   const activeMembers = useMemo(
     () => sortMembersByName(members.filter((m) => m.active)),
@@ -39,14 +44,10 @@ export function MemberPicker({
     const trimmed = name.trim()
     if (!trimmed) return
 
-    const existing = findMemberByName(members, trimmed)
-    if (existing) {
-      ensureMember(trimmed)
-      if (existing.name !== name) onChange(existing.name)
-      return
+    const resolved = ensureMember(trimmed)
+    if (resolved && resolved.name !== value) {
+      onChange(resolved.name)
     }
-
-    ensureMember(trimmed)
   }
 
   const selectOptions = useMemo(
@@ -69,6 +70,31 @@ export function MemberPicker({
   const matchedMember = value.trim() ? findMemberByName(members, value) : undefined
   const showSuggestions = open && filteredOptions.length > 0
 
+  useLayoutEffect(() => {
+    if (!showSuggestions) {
+      setDropdownRect(null)
+      return
+    }
+
+    const updatePosition = () => {
+      const rect = inputRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setDropdownRect({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition, true)
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition, true)
+    }
+  }, [showSuggestions, value])
+
   const selectMember = (name: string) => {
     onChange(name)
     registerMember(name)
@@ -84,6 +110,7 @@ export function MemberPicker({
   return (
     <div ref={containerRef} className="relative min-w-0 max-w-full space-y-2">
       <Input
+        ref={inputRef}
         value={value}
         onChange={(e) => {
           onChange(e.target.value)
@@ -109,31 +136,41 @@ export function MemberPicker({
         aria-autocomplete="list"
       />
 
-      {showSuggestions && (
-        <ul
-          className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-stone-200/80 bg-white/95 py-1 shadow-lg backdrop-blur-sm"
-          role="listbox"
-        >
-          {filteredOptions.map(({ member, count, atLimit: optionAtLimit }) => (
-            <li key={member.id} role="option">
-              <button
-                type="button"
-                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-navy-soft ${
-                  optionAtLimit ? 'text-amber-800' : 'text-stone-800'
-                }`}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => selectMember(member.name)}
-              >
-                <span>{member.name}</span>
-                <span className={`text-xs ${optionAtLimit ? 'font-medium text-amber-700' : 'text-stone-500'}`}>
-                  {count > 0 && `${count}/2`}
-                  {optionAtLimit && ' · Al límite'}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {showSuggestions &&
+        dropdownRect &&
+        createPortal(
+          <ul
+            className="fixed z-50 max-h-48 overflow-y-auto rounded-xl border border-stone-200/80 bg-white py-1 shadow-lg"
+            style={{
+              top: dropdownRect.top,
+              left: dropdownRect.left,
+              width: dropdownRect.width,
+            }}
+            role="listbox"
+          >
+            {filteredOptions.map(({ member, count, atLimit: optionAtLimit }) => (
+              <li key={member.id} role="option">
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-navy-soft ${
+                    optionAtLimit ? 'text-amber-800' : 'text-stone-800'
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => selectMember(member.name)}
+                >
+                  <span>{member.name}</span>
+                  <span
+                    className={`text-xs ${optionAtLimit ? 'font-medium text-amber-700' : 'text-stone-500'}`}
+                  >
+                    {count > 0 && `${count}/2`}
+                    {optionAtLimit && ' · Al límite'}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
 
       {value.trim() && (
         <div className="flex flex-wrap items-center gap-2 text-xs">

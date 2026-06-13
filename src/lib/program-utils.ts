@@ -157,7 +157,12 @@ export function getDefaultAppData(): AppData {
 }
 
 export function normalizeName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\s+/g, ' ')
 }
 
 export function sortMembersByName(members: Member[]): Member[] {

@@ -8,6 +8,7 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { useAppData } from '@/hooks/useAppData'
 import { findMemberByName } from '@/lib/assignment-rules'
+import { deduplicateAllMembers } from '@/lib/member-utils'
 import { createWeeklyProgram, getMondayOfWeek, sortMembersByName, sortPositionsByName } from '@/lib/program-utils'
 import type {
   AppData,
@@ -32,7 +33,7 @@ interface AppContextValue {
   syncError: string | null
   isRemoteEnabled: boolean
   addMember: (name: string) => Member
-  ensureMember: (name: string) => void
+  ensureMember: (name: string) => Member | undefined
   updateMember: (id: string, updates: Partial<Member>) => void
   deleteMember: (id: string) => void
   addMinistry: (name: string, description?: string) => Ministry
@@ -63,45 +64,112 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addMember = useCallback(
     (name: string): Member => {
-      const member: Member = { id: uuidv4(), name: name.trim(), active: true }
-      updateData((prev) => ({ ...prev, members: [...prev.members, member] }))
-      return member
+      const trimmed = name.trim()
+      const now = new Date().toISOString()
+      let resolved: Member = { id: uuidv4(), name: trimmed, active: true, createdAt: now }
+
+      updateData((prev) => {
+        const sameSpelling = prev.members.find((member) => member.name.trim() === trimmed)
+        let next: AppData = prev
+
+        if (sameSpelling) {
+          resolved = sameSpelling.active
+            ? sameSpelling
+            : { ...sameSpelling, active: true }
+          if (!sameSpelling.active) {
+            next = {
+              ...prev,
+              members: prev.members.map((member) =>
+                member.id === sameSpelling.id ? { ...member, active: true } : member,
+              ),
+            }
+          }
+        } else {
+          const member: Member = {
+            id: uuidv4(),
+            name: trimmed,
+            active: true,
+            createdAt: now,
+          }
+          resolved = member
+          next = { ...prev, members: [...prev.members, member] }
+        }
+
+        const deduped = deduplicateAllMembers(next)
+        const matched = findMemberByName(deduped.members, trimmed)
+        if (matched) resolved = matched
+        return deduped
+      })
+
+      return resolved
     },
     [updateData],
   )
 
   const ensureMember = useCallback(
-    (name: string) => {
+    (name: string): Member | undefined => {
       const trimmed = name.trim()
-      if (!trimmed) return
+      if (!trimmed) return undefined
+      const now = new Date().toISOString()
+      let resolved: Member | undefined
 
       updateData((prev) => {
         const existing = findMemberByName(prev.members, trimmed)
-        if (existing) {
-          if (existing.active) return prev
-          return {
-            ...prev,
-            members: prev.members.map((m) =>
-              m.id === existing.id ? { ...m, active: true } : m,
-            ),
+        let next: AppData = prev
+
+        if (existing && existing.name.trim() === trimmed) {
+          resolved = existing.active
+            ? existing
+            : { ...existing, active: true }
+          if (!existing.active) {
+            next = {
+              ...prev,
+              members: prev.members.map((member) =>
+                member.id === existing.id ? { ...member, active: true } : member,
+              ),
+            }
           }
+        } else {
+          const member: Member = {
+            id: uuidv4(),
+            name: trimmed,
+            active: true,
+            createdAt: now,
+          }
+          resolved = member
+          next = { ...prev, members: [...prev.members, member] }
         }
 
-        return {
-          ...prev,
-          members: [...prev.members, { id: uuidv4(), name: trimmed, active: true }],
-        }
+        const deduped = deduplicateAllMembers(next)
+        const matched = findMemberByName(deduped.members, trimmed)
+        if (matched) resolved = matched
+        return deduped
       })
+
+      return resolved
     },
     [updateData],
   )
 
   const updateMember = useCallback(
     (id: string, updates: Partial<Member>) => {
-      updateData((prev) => ({
-        ...prev,
-        members: prev.members.map((m) => (m.id === id ? { ...m, ...updates } : m)),
-      }))
+      updateData((prev) => {
+        if (updates.name !== undefined) {
+          const trimmed = updates.name.trim()
+          const conflict = prev.members.find(
+            (member) => member.id !== id && findMemberByName([member], trimmed),
+          )
+          if (conflict) return prev
+        }
+
+        const next: AppData = {
+          ...prev,
+          members: prev.members.map((member) =>
+            member.id === id ? { ...member, ...updates } : member,
+          ),
+        }
+        return deduplicateAllMembers(next)
+      })
     },
     [updateData],
   )

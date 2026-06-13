@@ -46,6 +46,7 @@ export interface Member {
   address?: string
   birthDate?: string
   positionId?: string
+  createdAt?: string
 }
 
 export interface MemberPosition {

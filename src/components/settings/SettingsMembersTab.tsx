@@ -197,7 +197,7 @@ export function SettingsMembersTab() {
 
   const handleAddMember = () => {
     if (!newMemberName.trim()) return
-    const member = addMember(newMemberName)
+    const member = addMember(newMemberName.trim())
     setNewMemberName('')
     setExpandedId(member.id)
   }
@@ -217,7 +217,8 @@ export function SettingsMembersTab() {
             Agregar miembro
           </CardTitle>
           <CardDescription>
-            Las personas nuevas también se crean al escribirlas al asignar partes en un programa.
+            Los nombres similares se unifican automáticamente: se conserva el registro más reciente y se
+            fusionan datos de los anteriores.
           </CardDescription>
         </CardHeader>
         <CardContent>
