@@ -1,4 +1,9 @@
-import { formatNamesList, formatTimeForDisplay, getDayLabel } from '@/lib/program-utils'
+import {
+  formatAssignmentMembers,
+  formatTimeForDisplay,
+  getDayLabel,
+  hasAssignmentContent,
+} from '@/lib/program-utils'
 import { formatBirthdayDayLabel, getBirthdaysByProgramDay } from '@/lib/birthday-utils'
 import type { DayEvent, Member, ProgramDay, WeeklyProgram } from '@/types'
 
@@ -23,9 +28,7 @@ function ShareEvent({ event }: { event: DayEvent }) {
 
   const title = event.title.trim() || 'Actividad'
   const timeLabel = formatTimeForDisplay(event.time)
-  const parts = event.assignments.filter((assignment) =>
-    assignment.members.some((member) => member.trim()),
-  )
+  const parts = event.assignments.filter(hasAssignmentContent)
 
   return (
     <div
@@ -60,7 +63,7 @@ function ShareEvent({ event }: { event: DayEvent }) {
           {parts.map((assignment) => (
             <p key={assignment.roleId} className="text-sm leading-snug text-stone-800">
               <span className="font-bold text-[#0f2d4a]">{assignment.roleName}:</span>{' '}
-              {formatNamesList(assignment.members)}
+              {formatAssignmentMembers(assignment)}
             </p>
           ))}
         </div>

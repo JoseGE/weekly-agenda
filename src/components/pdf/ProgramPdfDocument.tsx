@@ -6,7 +6,12 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import type { DayEvent, Member, ProgramDay, WeeklyProgram } from '@/types'
-import { formatTimeForDisplay, formatNamesList, getDayLabel } from '@/lib/program-utils'
+import {
+  formatAssignmentMembers,
+  formatTimeForDisplay,
+  getDayLabel,
+  hasAssignmentContent,
+} from '@/lib/program-utils'
 import {
   formatBirthdayDayLabel,
   getBirthdaysByProgramDay,
@@ -33,7 +38,7 @@ const colors = {
 const styles = StyleSheet.create({
   page: {
     backgroundColor: colors.white,
-    paddingTop: 14,
+    paddingTop: 10,
     paddingBottom: 18,
     paddingHorizontal: 24,
     fontFamily: 'Helvetica',
@@ -43,42 +48,42 @@ const styles = StyleSheet.create({
   header: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 6,
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginBottom: 3,
     alignItems: 'center',
   },
   headerAccent: {
-    width: 48,
-    height: 3,
+    width: 32,
+    height: 2,
     backgroundColor: colors.gold,
-    borderRadius: 2,
-    marginBottom: 5,
+    borderRadius: 1,
+    marginBottom: 2,
   },
   churchName: {
-    fontSize: 24,
+    fontSize: 16,
     fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
     color: colors.navyDark,
-    lineHeight: 1.2,
-    marginBottom: 2,
+    lineHeight: 1.1,
+    marginBottom: 1,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: colors.navy,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   themePill: {
     backgroundColor: colors.navySoft,
-    borderRadius: 20,
-    paddingVertical: 2,
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    paddingVertical: 1,
+    paddingHorizontal: 6,
   },
   themeText: {
-    fontSize: 12,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
     color: colors.navyDark,
     textAlign: 'center',
@@ -100,7 +105,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   dayHeaderText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: colors.navyDark,
   },
@@ -109,8 +114,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.goldBorder,
     borderRadius: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 7,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     marginBottom: 4,
     marginLeft: 12,
   },
@@ -144,7 +149,7 @@ const styles = StyleSheet.create({
   },
   eventCardSpecial: {
     borderColor: colors.specialBorder,
-    borderWidth: 1.5,
+    borderWidth: 1,
     backgroundColor: colors.specialSoft,
   },
   headlineRow: {
@@ -193,13 +198,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     marginTop: 2,
   },
-  partsTitle: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navy,
-    letterSpacing: 0.4,
-    marginBottom: 2,
-  },
   partRow: {
     flexDirection: 'row',
     marginBottom: 2,
@@ -223,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: colors.gold,
   },
@@ -300,7 +298,6 @@ function AnnouncementBlock({ event }: { event: DayEvent }) {
 
   return (
     <View style={styles.announcementCard} wrap={false}>
-      <Text style={styles.announcementTag}>ANUNCIO ESPECIAL</Text>
       <Text style={styles.announcementText}>{title}</Text>
       {location ? <Text style={styles.announcementLocation}>{location}</Text> : null}
     </View>
@@ -311,7 +308,7 @@ function ServiceBlock({ event }: { event: DayEvent }) {
   const title = event.title.trim() || 'Actividad'
   const timeLabel = formatTimeForDisplay(event.time)
   const location = event.location?.trim()
-  const parts = event.assignments.filter((a) => a.members.some((m) => m.trim()))
+  const parts = event.assignments.filter(hasAssignmentContent)
   const isSpecial = event.isSpecial
 
   return (
@@ -335,12 +332,11 @@ function ServiceBlock({ event }: { event: DayEvent }) {
 
       {parts.length > 0 ? (
         <View style={styles.partsBox}>
-          <Text style={styles.partsTitle}>Partes del culto</Text>
           {parts.map((assignment) => (
             <View key={assignment.roleId} style={styles.partRow}>
               <Text style={styles.partName}>{assignment.roleName}:</Text>
               <Text style={styles.partMembers}>
-                {formatNamesList(assignment.members)}
+                {formatAssignmentMembers(assignment)}
               </Text>
             </View>
           ))}
@@ -422,7 +418,6 @@ export function ProgramPdfDocument({ program, churchName, members }: ProgramPdfD
         <PdfBirthdaysSection program={program} members={members} />
         <View style={styles.footer} wrap={false}>
           <Text style={styles.footerText}>¡Dios les bendiga!</Text>
-          <Text style={styles.footerSub}>{churchName}</Text>
         </View>
         <Text
           style={styles.pageNumber}

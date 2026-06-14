@@ -3,7 +3,9 @@ import { FIXED_ROLES } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { MemberPicker, MultiMemberPicker } from '@/components/MemberPicker'
+import { PENDING_ASSIGNMENT_LABEL } from '@/lib/program-utils'
 import type { DayEvent, Member, RoleAssignment, RoleId, WeeklyProgram } from '@/types'
 
 interface RoleAssignmentEditorProps {
@@ -22,13 +24,36 @@ export function RoleAssignmentEditor({
   const getAssignment = (roleId: RoleId): RoleAssignment | undefined =>
     event.assignments.find((a) => a.roleId === roleId)
 
-  const updateRole = (roleId: RoleId, roleName: string, membersList: string[]) => {
+  const updateRole = (
+    roleId: RoleId,
+    roleName: string,
+    membersList: string[],
+    assignOnEventDay = false,
+  ) => {
     const others = event.assignments.filter((a) => a.roleId !== roleId)
-    if (membersList.length === 0) {
+    if (!assignOnEventDay && membersList.length === 0) {
       onUpdateAssignments(others)
       return
     }
-    onUpdateAssignments([...others, { roleId, roleName, members: membersList }])
+    onUpdateAssignments([
+      ...others,
+      {
+        roleId,
+        roleName,
+        members: assignOnEventDay ? [] : membersList,
+        ...(assignOnEventDay ? { assignOnEventDay: true } : {}),
+      },
+    ])
+  }
+
+  const setAssignOnEventDay = (roleId: RoleId, roleName: string, assignOnEventDay: boolean) => {
+    if (assignOnEventDay) {
+      updateRole(roleId, roleName, [], true)
+      return
+    }
+    const existing = event.assignments.find((a) => a.roleId === roleId)
+    const members = existing?.members.some((m) => m.trim()) ? existing.members : ['']
+    updateRole(roleId, roleName, members, false)
   }
 
   const addRole = (roleId: RoleId) => {
@@ -96,7 +121,28 @@ export function RoleAssignmentEditor({
               </Button>
             </div>
 
-            {roleDef.allowMultiple ? (
+            <div className="mb-3 flex min-w-0 items-start gap-2">
+              <Switch
+                id={`assign-on-event-day-${assignment.roleId}`}
+                checked={assignment.assignOnEventDay === true}
+                onCheckedChange={(checked) =>
+                  setAssignOnEventDay(assignment.roleId, assignment.roleName, checked)
+                }
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor={`assign-on-event-day-${assignment.roleId}`}
+                className="break-words leading-snug text-sm"
+              >
+                {PENDING_ASSIGNMENT_LABEL}
+              </Label>
+            </div>
+
+            {assignment.assignOnEventDay ? (
+              <Badge variant="secondary" className="text-xs">
+                {PENDING_ASSIGNMENT_LABEL}
+              </Badge>
+            ) : roleDef.allowMultiple ? (
               <MultiMemberPicker
                 program={program}
                 members={members}

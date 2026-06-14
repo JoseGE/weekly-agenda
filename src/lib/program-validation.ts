@@ -53,7 +53,8 @@ export function getProgramIssues(program: WeeklyProgram): ProgramIssue[] {
       }
 
       for (const assignment of event.assignments) {
-        const hasMember = assignment.members.some((name) => name.trim())
+        const hasMember =
+          assignment.assignOnEventDay || assignment.members.some((name) => name.trim())
         if (!hasMember) {
           issues.push({
             kind: 'missing-assignment-member',

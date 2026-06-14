@@ -11,10 +11,13 @@ import {
   type Member,
   type MemberPosition,
   type ProgramDay,
+  type RoleAssignment,
   type WeekTemplateDay,
   type WeekTemplateEvent,
   type WeeklyProgram,
 } from '@/types'
+
+export const PENDING_ASSIGNMENT_LABEL = 'Se dará allá'
 
 export function getMondayOfWeek(date: Date = new Date()): Date {
   return startOfWeek(date, { weekStartsOn: 1 })
@@ -191,6 +194,15 @@ export function formatNamesList(names: string[]): string {
   if (cleaned.length === 1) return cleaned[0]
   if (cleaned.length === 2) return `${cleaned[0]} y ${cleaned[1]}`
   return `${cleaned.slice(0, -1).join(', ')} y ${cleaned[cleaned.length - 1]}`
+}
+
+export function formatAssignmentMembers(assignment: RoleAssignment): string {
+  if (assignment.assignOnEventDay) return PENDING_ASSIGNMENT_LABEL
+  return formatNamesList(assignment.members)
+}
+
+export function hasAssignmentContent(assignment: RoleAssignment): boolean {
+  return assignment.assignOnEventDay === true || assignment.members.some((m) => m.trim())
 }
 
 export function getDayLabel(day: ProgramDay): string {

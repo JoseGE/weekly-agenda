@@ -66,6 +66,7 @@ export interface RoleAssignment {
   roleId: RoleId
   roleName: string
   members: string[]
+  assignOnEventDay?: boolean
 }
 
 export interface WeekTemplateEvent {
