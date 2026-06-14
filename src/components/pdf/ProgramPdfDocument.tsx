@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   headerSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: colors.navy,
     textAlign: 'center',
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   dayHeaderText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: colors.navyDark,
   },
@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 7,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     marginBottom: 4,
     marginLeft: 12,
   },
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: colors.text,
-    lineHeight: 1.35,
+    lineHeight: 1,
   },
   specialHeadline: {
     fontSize: 13,
@@ -192,11 +192,11 @@ const styles = StyleSheet.create({
   partsBox: {
     backgroundColor: colors.partBg,
     borderRadius: 5,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: colors.border,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    marginTop: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    marginTop: 1,
   },
   partRow: {
     flexDirection: 'row',
