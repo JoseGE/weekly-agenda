@@ -222,6 +222,35 @@ export function formatTimeForDisplay(time: string): string {
   return `${hour12}:${minutes} ${period}`
 }
 
+/** Minutes since midnight for sorting; null when time is missing or unparseable. */
+export function parseTimeToMinutes(time: string): number | null {
+  const trimmed = time.trim()
+  if (!trimmed) return null
+
+  const h24 = trimmed.match(/^(\d{1,2}):(\d{2})$/)
+  if (h24) return Number(h24[1]) * 60 + Number(h24[2])
+
+  const ampm = trimmed.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i)
+  if (ampm) {
+    let hours = Number(ampm[1]) % 12
+    if (ampm[3].toLowerCase() === 'pm') hours += 12
+    return hours * 60 + Number(ampm[2])
+  }
+
+  return null
+}
+
+export function sortEventsByTime(events: DayEvent[]): DayEvent[] {
+  return [...events].sort((a, b) => {
+    const timeA = parseTimeToMinutes(a.time)
+    const timeB = parseTimeToMinutes(b.time)
+    if (timeA === null && timeB === null) return 0
+    if (timeA === null) return 1
+    if (timeB === null) return -1
+    return timeA - timeB
+  })
+}
+
 export function getEventSummary(event: DayEvent): string {
   const title = event.title.trim() || 'Sin título'
   if (event.isSimpleAnnouncement) return title

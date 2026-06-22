@@ -11,6 +11,7 @@ import {
   formatTimeForDisplay,
   getDayLabel,
   hasAssignmentContent,
+  sortEventsByTime,
 } from '@/lib/program-utils'
 import {
   formatBirthdayDayLabel,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   dayHeaderText: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: 'Helvetica-Bold',
     color: colors.navyDark,
   },
@@ -171,20 +172,20 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 13.5,
     fontFamily: 'Helvetica-Bold',
     color: colors.text,
     lineHeight: 1,
   },
   specialHeadline: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontFamily: 'Helvetica-Bold',
     color: colors.special,
-    lineHeight: 1.35,
+    lineHeight: 1,
     marginBottom: 1,
   },
   eventLocation: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSoft,
     marginBottom: 2,
     marginTop: 1,
@@ -203,14 +204,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   partName: {
-    width: 96,
-    fontSize: 12,
+    width: 105,
+    fontSize: 12.5,
     fontFamily: 'Helvetica-Bold',
     color: colors.navyDark,
   },
   partMembers: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 12.5,
     color: colors.text,
   },
   footer: {
@@ -381,7 +382,7 @@ function PdfBirthdaysSection({
 function PdfDaySection({ day }: { day: ProgramDay }) {
   if (day.events.length === 0) return null
 
-  const [firstEvent, ...restEvents] = day.events
+  const [firstEvent, ...restEvents] = sortEventsByTime(day.events)
 
   return (
     <View style={styles.daySection}>
