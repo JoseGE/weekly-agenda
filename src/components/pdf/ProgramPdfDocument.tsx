@@ -3,9 +3,10 @@ import {
   Page,
   Text,
   View,
-  StyleSheet,
 } from '@react-pdf/renderer'
 import type { DayEvent, Member, ProgramDay, WeeklyProgram } from '@/types'
+import { createPdfStyles, type PdfStyles } from '@/lib/pdf-document-styles'
+import { PDF_FONT_SCALE_DEFAULT } from '@/lib/pdf-font-scale'
 import {
   formatAssignmentMembers,
   formatTimeForDisplay,
@@ -18,264 +19,12 @@ import {
   getBirthdaysByProgramDay,
 } from '@/lib/birthday-utils'
 
-const colors = {
-  white: '#ffffff',
-  border: '#e5e7eb',
-  navy: '#1a4d7c',
-  navyDark: '#0f2d4a',
-  navySoft: '#e8f0f7',
-  gold: '#c47a2c',
-  goldSoft: '#fef7ed',
-  goldBorder: '#f0c987',
-  special: '#b45309',
-  specialSoft: '#fffbeb',
-  specialBorder: '#f59e0b',
-  text: '#1c1917',
-  textSoft: '#57534e',
-  textMuted: '#78716c',
-  partBg: '#fafaf9',
-}
-
-const styles = StyleSheet.create({
-  page: {
-    backgroundColor: colors.white,
-    paddingTop: 10,
-    paddingBottom: 18,
-    paddingHorizontal: 24,
-    fontFamily: 'Helvetica',
-    fontSize: 12,
-    color: colors.text,
-  },
-  header: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    marginBottom: 3,
-    alignItems: 'center',
-  },
-  headerAccent: {
-    width: 32,
-    height: 2,
-    backgroundColor: colors.gold,
-    borderRadius: 1,
-    marginBottom: 2,
-  },
-  churchName: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    textAlign: 'center',
-    color: colors.navyDark,
-    lineHeight: 1.1,
-    marginBottom: 1,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navy,
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  themePill: {
-    backgroundColor: colors.navySoft,
-    borderRadius: 12,
-    paddingVertical: 1,
-    paddingHorizontal: 6,
-  },
-  themeText: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navyDark,
-    textAlign: 'center',
-  },
-  daySection: {
-    marginBottom: 5,
-  },
-  dayHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 3,
-    marginTop: 2,
-  },
-  dayDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.gold,
-    marginRight: 6,
-  },
-  dayHeaderText: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navyDark,
-  },
-  announcementCard: {
-    backgroundColor: colors.goldSoft,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    marginBottom: 4,
-    marginLeft: 12,
-  },
-  announcementTag: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.gold,
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  announcementText: {
-    fontSize: 13,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.gold,
-    lineHeight: 1.35,
-  },
-  announcementLocation: {
-    fontSize: 11,
-    color: colors.textSoft,
-    marginTop: 2,
-  },
-  eventCard: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    marginBottom: 4,
-    marginLeft: 12,
-  },
-  eventCardSpecial: {
-    borderColor: colors.specialBorder,
-    borderWidth: 1,
-    backgroundColor: colors.specialSoft,
-  },
-  headlineRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 1,
-  },
-  timeChip: {
-    backgroundColor: colors.navySoft,
-    borderRadius: 5,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginRight: 6,
-  },
-  timeChipText: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navy,
-  },
-  eventTitle: {
-    flex: 1,
-    fontSize: 13.5,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.text,
-    lineHeight: 1,
-  },
-  specialHeadline: {
-    fontSize: 13.5,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.special,
-    lineHeight: 1,
-    marginBottom: 1,
-  },
-  eventLocation: {
-    fontSize: 12,
-    color: colors.textSoft,
-    marginBottom: 2,
-    marginTop: 1,
-  },
-  partsBox: {
-    backgroundColor: colors.partBg,
-    borderRadius: 5,
-    borderWidth: 0.5,
-    borderColor: colors.border,
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-    marginTop: 1,
-  },
-  partRow: {
-    flexDirection: 'row',
-    marginBottom: 2,
-  },
-  partName: {
-    width: 105,
-    fontSize: 12.5,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navyDark,
-  },
-  partMembers: {
-    flex: 1,
-    fontSize: 12.5,
-    color: colors.text,
-  },
-  footer: {
-    marginTop: 10,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: colors.goldBorder,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.gold,
-  },
-  footerSub: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  pageNumber: {
-    position: 'absolute',
-    bottom: 12,
-    right: 28,
-    fontSize: 8,
-    color: colors.textMuted,
-  },
-  birthdaysBox: {
-    backgroundColor: '#fdf2f8',
-    borderWidth: 1,
-    borderColor: '#f9a8d4',
-    borderRadius: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 7,
-    marginTop: 5,
-    marginBottom: 4,
-  },
-  birthdaysTitle: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#9d174d',
-    marginBottom: 3,
-  },
-  birthdayRow: {
-    flexDirection: 'row',
-    marginBottom: 1,
-  },
-  birthdayDay: {
-    width: 76,
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: '#831843',
-  },
-  birthdayNames: {
-    flex: 1,
-    fontSize: 11,
-    color: colors.text,
-  },
-})
-
-
 function PdfHeader({
+  styles,
   program,
   churchName,
 }: {
+  styles: PdfStyles
   program: WeeklyProgram
   churchName: string
 }) {
@@ -293,7 +42,7 @@ function PdfHeader({
   )
 }
 
-function AnnouncementBlock({ event }: { event: DayEvent }) {
+function AnnouncementBlock({ styles, event }: { styles: PdfStyles; event: DayEvent }) {
   const title = event.title.trim() || 'Anuncio'
   const location = event.location?.trim()
 
@@ -305,7 +54,7 @@ function AnnouncementBlock({ event }: { event: DayEvent }) {
   )
 }
 
-function ServiceBlock({ event }: { event: DayEvent }) {
+function ServiceBlock({ styles, event }: { styles: PdfStyles; event: DayEvent }) {
   const title = event.title.trim() || 'Actividad'
   const timeLabel = formatTimeForDisplay(event.time)
   const location = event.location?.trim()
@@ -347,17 +96,19 @@ function ServiceBlock({ event }: { event: DayEvent }) {
   )
 }
 
-function PdfEventBlock({ event }: { event: DayEvent }) {
+function PdfEventBlock({ styles, event }: { styles: PdfStyles; event: DayEvent }) {
   if (event.isSimpleAnnouncement) {
-    return <AnnouncementBlock event={event} />
+    return <AnnouncementBlock styles={styles} event={event} />
   }
-  return <ServiceBlock event={event} />
+  return <ServiceBlock styles={styles} event={event} />
 }
 
 function PdfBirthdaysSection({
+  styles,
   program,
   members,
 }: {
+  styles: PdfStyles
   program: WeeklyProgram
   members: Member[]
 }) {
@@ -379,7 +130,7 @@ function PdfBirthdaysSection({
   )
 }
 
-function PdfDaySection({ day }: { day: ProgramDay }) {
+function PdfDaySection({ styles, day }: { styles: PdfStyles; day: ProgramDay }) {
   if (day.events.length === 0) return null
 
   const [firstEvent, ...restEvents] = sortEventsByTime(day.events)
@@ -391,32 +142,39 @@ function PdfDaySection({ day }: { day: ProgramDay }) {
           <View style={styles.dayDot} />
           <Text style={styles.dayHeaderText}>{getDayLabel(day)}</Text>
         </View>
-        <PdfEventBlock event={firstEvent} />
+        <PdfEventBlock styles={styles} event={firstEvent} />
       </View>
       {restEvents.map((event) => (
-        <PdfEventBlock key={event.id} event={event} />
+        <PdfEventBlock key={event.id} styles={styles} event={event} />
       ))}
     </View>
   )
 }
 
-interface ProgramPdfDocumentProps {
+export interface ProgramPdfDocumentProps {
   program: WeeklyProgram
   churchName: string
   members: Member[]
+  fontScale?: number
 }
 
-export function ProgramPdfDocument({ program, churchName, members }: ProgramPdfDocumentProps) {
+export function ProgramPdfDocument({
+  program,
+  churchName,
+  members,
+  fontScale = PDF_FONT_SCALE_DEFAULT,
+}: ProgramPdfDocumentProps) {
+  const styles = createPdfStyles(fontScale)
   const daysWithEvents = program.days.filter((day) => day.events.length > 0)
 
   return (
     <Document title={`Programa ${program.weekStartDate}`}>
       <Page size="LETTER" style={styles.page} wrap>
-        <PdfHeader program={program} churchName={churchName} />
+        <PdfHeader styles={styles} program={program} churchName={churchName} />
         {daysWithEvents.map((day) => (
-          <PdfDaySection key={day.dayIndex} day={day} />
+          <PdfDaySection key={day.dayIndex} styles={styles} day={day} />
         ))}
-        <PdfBirthdaysSection program={program} members={members} />
+        <PdfBirthdaysSection styles={styles} program={program} members={members} />
         <View style={styles.footer} wrap={false}>
           <Text style={styles.footerText}>¡Dios les bendiga!</Text>
         </View>

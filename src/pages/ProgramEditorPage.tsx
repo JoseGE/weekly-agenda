@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, ImageDown, Plus } from 'lucide-react'
+import { ArrowLeft, Download, Eye, ImageDown, Plus } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { AssignmentCounter } from '@/components/AssignmentCounter'
 import { BirthdaysSection } from '@/components/BirthdaysSection'
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getPeopleAtLimit } from '@/lib/assignment-rules'
 import { downloadProgramImage } from '@/lib/download-program-image'
 import { downloadProgramPdf } from '@/lib/download-program-pdf'
+import { getPdfFontScale, setPdfFontScale } from '@/lib/pdf-font-scale'
 import { getProgramIssues, isProgramReadyToComplete } from '@/lib/program-validation'
 import {
   createEmptyEvent,
@@ -25,6 +26,12 @@ import {
 } from '@/lib/program-utils'
 import { DAY_SHORT, type DayEvent, type ProgramDay } from '@/types'
 
+const ProgramPdfPreview = lazy(() =>
+  import('@/components/pdf/ProgramPdfPreview').then((module) => ({
+    default: module.ProgramPdfPreview,
+  })),
+)
+
 export function ProgramEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -33,6 +40,8 @@ export function ProgramEditorPage() {
   const [activeDay, setActiveDay] = useState('0')
   const [generating, setGenerating] = useState(false)
   const [generatingImage, setGeneratingImage] = useState(false)
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
+  const [pdfFontScale, setPdfFontScaleState] = useState(getPdfFontScale)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(() => new Set())
 
   useEffect(() => {
@@ -126,10 +135,16 @@ export function ProgramEditorPage() {
   const handleDownloadPdf = async () => {
     setGenerating(true)
     try {
-      await downloadProgramPdf(program, settings.churchName, members)
+      setPdfFontScale(pdfFontScale)
+      await downloadProgramPdf(program, settings.churchName, members, pdfFontScale)
     } finally {
       setGenerating(false)
     }
+  }
+
+  const handlePdfFontScaleChange = (scale: number) => {
+    setPdfFontScaleState(scale)
+    setPdfFontScale(scale)
   }
 
   const handleDownloadImage = async () => {
@@ -187,6 +202,14 @@ export function ProgramEditorPage() {
           >
             <ImageDown className="h-4 w-4" />
             {generatingImage ? 'Generando...' : 'WhatsApp'}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => setPdfPreviewOpen(true)}
+          >
+            <Eye className="h-4 w-4" />
+            Vista previa PDF
           </Button>
           <Button onClick={handleDownloadPdf} disabled={generating} className="w-full sm:w-auto">
             <Download className="h-4 w-4" />
@@ -340,6 +363,25 @@ export function ProgramEditorPage() {
           )}
         </aside>
       </div>
+
+      {pdfPreviewOpen ? (
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/80 text-white">
+              Cargando vista previa...
+            </div>
+          }
+        >
+          <ProgramPdfPreview
+            program={program}
+            churchName={settings.churchName}
+            members={members}
+            fontScale={pdfFontScale}
+            onFontScaleChange={handlePdfFontScaleChange}
+            onClose={() => setPdfPreviewOpen(false)}
+          />
+        </Suspense>
+      ) : null}
     </div>
   )
 }
