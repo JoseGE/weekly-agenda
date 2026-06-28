@@ -117,11 +117,109 @@ export interface AppSettings {
   defaultMonthlyTheme: string
 }
 
+export type ChurchCardTemplate =
+  | 'invitacion'
+  | 'anuncio'
+  | 'agradecimiento'
+  | 'bienvenida'
+  | 'oracion'
+  | 'libre'
+
+export interface ChurchCardTemplateDefinition {
+  id: ChurchCardTemplate
+  name: string
+  description: string
+  defaultTitle: string
+  defaultBody: string
+  defaultClosing: string
+}
+
+export const CHURCH_CARD_TEMPLATES: ChurchCardTemplateDefinition[] = [
+  {
+    id: 'invitacion',
+    name: 'Invitación',
+    description: 'Invitar a un culto, actividad o evento especial',
+    defaultTitle: 'Está cordialmente invitado(a)',
+    defaultBody:
+      'Nos complace invitarle a acompañarnos en este encuentro de fe. Su presencia será una bendición para nuestra congregación.',
+    defaultClosing: 'Esperamos contar con usted',
+  },
+  {
+    id: 'anuncio',
+    name: 'Anuncio',
+    description: 'Comunicar una noticia importante a la iglesia',
+    defaultTitle: 'Anuncio especial',
+    defaultBody: 'Compartimos con alegría la siguiente información para toda nuestra congregación:',
+    defaultClosing: 'Manténgase atento(a) a más detalles',
+  },
+  {
+    id: 'agradecimiento',
+    name: 'Agradecimiento',
+    description: 'Expresar gratitud por un servicio o apoyo recibido',
+    defaultTitle: 'Con gratitud',
+    defaultBody:
+      'Deseamos expresar nuestro sincero agradecimiento por su apoyo, dedicación y amor hacia esta obra del Señor.',
+    defaultClosing: 'Que Dios le retribuya abundantemente',
+  },
+  {
+    id: 'bienvenida',
+    name: 'Bienvenida',
+    description: 'Dar la bienvenida a visitantes o nuevos miembros',
+    defaultTitle: '¡Bienvenido(a)!',
+    defaultBody:
+      'Es un honor recibirle en nuestra casa de adoración. Oramos para que encuentre aquí una familia de fe donde pueda crecer espiritualmente.',
+    defaultClosing: 'Bienvenido(a) a la familia Central',
+  },
+  {
+    id: 'oracion',
+    name: 'Oración',
+    description: 'Convocar a un tiempo de oración o vigilia',
+    defaultTitle: 'Llamado a orar',
+    defaultBody:
+      'Invitamos a toda la iglesia a unirse en oración. Juntos buscaremos la presencia del Señor y su dirección para nuestra congregación.',
+    defaultClosing: 'Oremos unidos',
+  },
+  {
+    id: 'libre',
+    name: 'Carta libre',
+    description: 'Comunicación personalizada sin plantilla fija',
+    defaultTitle: '',
+    defaultBody: '',
+    defaultClosing: '¡Dios le bendiga!',
+  },
+]
+
+export type CardTextAlign = 'left' | 'center'
+
+export interface ChurchCardAlign {
+  recipient?: CardTextAlign
+  title?: CardTextAlign
+  subtitle?: CardTextAlign
+  body?: CardTextAlign
+}
+
+export interface ChurchCard {
+  id: string
+  template: ChurchCardTemplate
+  title: string
+  subtitle?: string
+  recipient?: string
+  body: string
+  closing?: string
+  eventDate?: string
+  eventTime?: string
+  location?: string
+  align?: ChurchCardAlign
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AppData {
   members: Member[]
   ministries: Ministry[]
   positions: MemberPosition[]
   programs: WeeklyProgram[]
+  cards: ChurchCard[]
   weekTemplate: WeekTemplateDay[]
   settings: AppSettings
 }

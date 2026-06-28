@@ -154,6 +154,7 @@ export function getDefaultAppData(): AppData {
     ministries: DEFAULT_MINISTRIES,
     positions: DEFAULT_MEMBER_POSITIONS,
     programs: [],
+    cards: [],
     weekTemplate: createEmptyWeekTemplate(),
     settings: { ...DEFAULT_SETTINGS },
   }

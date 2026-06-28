@@ -1,0 +1,185 @@
+import { StyleSheet } from '@react-pdf/renderer'
+import { pdfColors } from '@/lib/pdf-document-styles'
+
+export const cardColors = {
+  ...pdfColors,
+  cream: '#faf6ef',
+  creamBorder: '#e8dcc8',
+  goldMuted: '#d4a574',
+  ornament: '#1a4d7c',
+} as const
+
+export function createCardPdfStyles() {
+  return StyleSheet.create({
+    page: {
+      backgroundColor: cardColors.cream,
+      paddingVertical: 36,
+      paddingHorizontal: 40,
+      fontFamily: 'Helvetica',
+      fontSize: 11,
+      color: cardColors.text,
+    },
+    outerFrame: {
+      flex: 1,
+      borderWidth: 2,
+      borderColor: cardColors.gold,
+      padding: 3,
+    },
+    innerFrame: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: cardColors.creamBorder,
+      paddingVertical: 28,
+      paddingHorizontal: 32,
+      alignItems: 'center',
+    },
+    ornamentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+      width: '100%',
+    },
+    ornamentLine: {
+      height: 1,
+      flex: 1,
+      backgroundColor: cardColors.goldMuted,
+      maxWidth: 80,
+    },
+    ornamentDiamond: {
+      fontSize: 10,
+      color: cardColors.gold,
+      marginHorizontal: 8,
+    },
+    churchName: {
+      fontSize: 13,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.navyDark,
+      textAlign: 'center',
+      letterSpacing: 0.6,
+      marginBottom: 4,
+    },
+    tagline: {
+      fontSize: 8.5,
+      color: cardColors.gold,
+      textAlign: 'center',
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      marginBottom: 16,
+    },
+    templateBadge: {
+      backgroundColor: cardColors.navySoft,
+      borderRadius: 12,
+      paddingVertical: 3,
+      paddingHorizontal: 12,
+      marginBottom: 14,
+    },
+    templateBadgeText: {
+      fontSize: 8,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.navy,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    recipient: {
+      fontSize: 10,
+      color: cardColors.textSoft,
+      marginBottom: 8,
+      fontStyle: 'italic',
+      width: '100%',
+      maxWidth: 420,
+    },
+    title: {
+      fontSize: 20,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.navyDark,
+      lineHeight: 1.2,
+      marginBottom: 6,
+      width: '100%',
+      maxWidth: 420,
+    },
+    subtitle: {
+      fontSize: 12,
+      color: cardColors.navy,
+      marginBottom: 14,
+      width: '100%',
+      maxWidth: 420,
+    },
+    divider: {
+      width: 48,
+      height: 2,
+      backgroundColor: cardColors.gold,
+      marginBottom: 16,
+    },
+    bodyWrap: {
+      width: '100%',
+      maxWidth: 420,
+      alignSelf: 'center',
+      marginBottom: 16,
+    },
+    body: {
+      fontSize: 11.5,
+      lineHeight: 1.55,
+      color: cardColors.text,
+      paddingHorizontal: 4,
+    },
+    eventBox: {
+      backgroundColor: cardColors.white,
+      borderWidth: 1,
+      borderColor: cardColors.creamBorder,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      marginBottom: 16,
+      width: '100%',
+      maxWidth: 360,
+      alignItems: 'center',
+    },
+    eventDate: {
+      fontSize: 12,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.navyDark,
+      textAlign: 'center',
+      marginBottom: 2,
+    },
+    eventTime: {
+      fontSize: 11,
+      color: cardColors.navy,
+      textAlign: 'center',
+    },
+    eventLocation: {
+      fontSize: 10,
+      color: cardColors.textSoft,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+    closing: {
+      fontSize: 11,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.gold,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    footerOrnament: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      width: '100%',
+    },
+    footerText: {
+      fontSize: 10,
+      fontFamily: 'Helvetica-Bold',
+      color: cardColors.navyDark,
+      textAlign: 'center',
+    },
+    footerSub: {
+      fontSize: 8.5,
+      color: cardColors.textMuted,
+      textAlign: 'center',
+      marginTop: 2,
+    },
+  })
+}
+
+export type CardPdfStyles = ReturnType<typeof createCardPdfStyles>

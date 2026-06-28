@@ -13,6 +13,8 @@ import { createWeeklyProgram, getMondayOfWeek, sortMembersByName, sortPositionsB
 import type {
   AppData,
   AppSettings,
+  ChurchCard,
+  ChurchCardTemplate,
   DayEvent,
   Member,
   MemberPosition,
@@ -20,6 +22,7 @@ import type {
   WeekTemplateDay,
   WeeklyProgram,
 } from '@/types'
+import { createEmptyCard } from '@/lib/card-utils'
 
 interface AppContextValue {
   data: AppData
@@ -27,6 +30,7 @@ interface AppContextValue {
   ministries: Ministry[]
   positions: MemberPosition[]
   programs: WeeklyProgram[]
+  cards: ChurchCard[]
   settings: AppSettings
   loading: boolean
   isSyncing: boolean
@@ -48,6 +52,10 @@ interface AppContextValue {
   updateProgram: (program: WeeklyProgram) => void
   deleteProgram: (id: string) => void
   getProgram: (id: string) => WeeklyProgram | undefined
+  createCard: (template?: ChurchCardTemplate, overrides?: Partial<ChurchCard>) => ChurchCard
+  updateCard: (card: ChurchCard) => void
+  deleteCard: (id: string) => void
+  getCard: (id: string) => ChurchCard | undefined
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -311,6 +319,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [data.programs],
   )
 
+  const createCard = useCallback(
+    (template: ChurchCardTemplate = 'invitacion', overrides?: Partial<ChurchCard>): ChurchCard => {
+      const card = { ...createEmptyCard(template), ...overrides }
+      updateData((prev) => ({ ...prev, cards: [card, ...prev.cards] }))
+      return card
+    },
+    [updateData],
+  )
+
+  const updateCard = useCallback(
+    (card: ChurchCard) => {
+      const updated = { ...card, updatedAt: new Date().toISOString() }
+      updateData((prev) => ({
+        ...prev,
+        cards: prev.cards.map((item) => (item.id === updated.id ? updated : item)),
+      }))
+    },
+    [updateData],
+  )
+
+  const deleteCard = useCallback(
+    (id: string) => {
+      updateData((prev) => ({
+        ...prev,
+        cards: prev.cards.filter((item) => item.id !== id),
+      }))
+    },
+    [updateData],
+  )
+
+  const getCard = useCallback(
+    (id: string) => data.cards.find((item) => item.id === id),
+    [data.cards],
+  )
+
   const value = useMemo<AppContextValue>(
     () => ({
       data,
@@ -318,6 +361,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ministries: data.ministries.filter((m) => m.active),
       positions: sortPositionsByName(data.positions.filter((p) => p.active)),
       programs: data.programs,
+      cards: data.cards,
       settings: data.settings,
       loading,
       isSyncing,
@@ -339,6 +383,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateProgram,
       deleteProgram,
       getProgram,
+      createCard,
+      updateCard,
+      deleteCard,
+      getCard,
     }),
     [
       data,
@@ -362,6 +410,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateProgram,
       deleteProgram,
       getProgram,
+      createCard,
+      updateCard,
+      deleteCard,
+      getCard,
     ],
   )
 

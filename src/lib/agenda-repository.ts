@@ -21,6 +21,7 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
         ? raw.positions
         : defaults.positions,
     programs: Array.isArray(raw.programs) ? raw.programs : defaults.programs,
+    cards: Array.isArray(raw.cards) ? raw.cards : defaults.cards,
     weekTemplate:
       Array.isArray(raw.weekTemplate) && raw.weekTemplate.length === 7
         ? raw.weekTemplate

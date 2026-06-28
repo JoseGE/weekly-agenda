@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { CalendarDays, Loader2, Settings } from 'lucide-react'
+import { CalendarDays, Loader2, Mail, Settings } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { cn } from '@/lib/utils'
 
@@ -9,6 +9,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { to: '/', label: 'Programas', icon: CalendarDays, match: (path: string) => path === '/' || path.startsWith('/programa') },
+    { to: '/cartas', label: 'Cartas', icon: Mail, match: (path: string) => path.startsWith('/cartas') },
     { to: '/configuracion', label: 'Configuración', icon: Settings, match: (path: string) => path.startsWith('/configuracion') },
   ]
 
