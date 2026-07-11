@@ -252,6 +252,11 @@ export function sortEventsByTime(events: DayEvent[]): DayEvent[] {
   })
 }
 
+export function getOrderedEvents(day: ProgramDay): DayEvent[] {
+  if (day.eventsOrder === 'manual') return day.events
+  return sortEventsByTime(day.events)
+}
+
 export function getEventSummary(event: DayEvent): string {
   const title = event.title.trim() || 'Sin título'
   if (event.isSimpleAnnouncement) return title

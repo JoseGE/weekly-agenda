@@ -1,4 +1,4 @@
-import { ChevronDown, Trash2 } from 'lucide-react'
+import { ChevronDown, GripVertical, Trash2 } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { RoleAssignmentEditor } from '@/components/RoleAssignmentEditor'
 import { getEventSummary } from '@/lib/program-utils'
+import { applyMinistryTitlePrefix } from '@/lib/ministry-title'
 import { cn } from '@/lib/utils'
 import type { DayEvent, WeeklyProgram } from '@/types'
 
@@ -25,6 +26,8 @@ interface EventCardProps {
   onDelete: () => void
   collapsed: boolean
   onToggleCollapsed: () => void
+  dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>
+  isDragging?: boolean
 }
 
 export function EventCard({
@@ -34,19 +37,37 @@ export function EventCard({
   onDelete,
   collapsed,
   onToggleCollapsed,
+  dragHandleProps,
+  isDragging,
 }: EventCardProps) {
   const { ministries, members } = useApp()
 
   const update = (partial: Partial<DayEvent>) => onUpdate({ ...event, ...partial })
 
   return (
-    <div className="w-full max-w-full overflow-hidden rounded-[var(--radius-card)] border border-stone-200/70 bg-white shadow-sm">
+    <div
+      className={cn(
+        'w-full max-w-full overflow-hidden rounded-[var(--radius-card)] border border-stone-200/70 bg-white shadow-sm',
+        isDragging && 'opacity-60 ring-2 ring-navy-soft',
+      )}
+    >
       <div
         className={cn(
           'flex min-w-0 items-start gap-2 bg-white px-2 py-3 sm:px-3',
           !collapsed && 'border-b border-stone-100',
         )}
       >
+        {dragHandleProps ? (
+          <button
+            type="button"
+            className="mt-0.5 shrink-0 cursor-grab touch-none rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 active:cursor-grabbing"
+            aria-label="Arrastrar para reordenar"
+            {...dragHandleProps}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        ) : null}
+
         <Button
           type="button"
           variant="ghost"
@@ -109,7 +130,13 @@ export function EventCard({
               <Label htmlFor={`ministry-${event.id}`}>Ministerio (opcional)</Label>
               <Select
                 value={event.ministryId ?? 'none'}
-                onValueChange={(v) => update({ ministryId: v === 'none' ? undefined : v })}
+                onValueChange={(v) => {
+                  const ministryId = v === 'none' ? undefined : v
+                  update({
+                    ministryId,
+                    title: applyMinistryTitlePrefix(event.title, ministryId, ministries),
+                  })
+                }}
               >
                 <SelectTrigger id={`ministry-${event.id}`}>
                   <SelectValue placeholder="Seleccionar ministerio" />

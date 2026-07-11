@@ -99,6 +99,7 @@ export interface ProgramDay {
   dayIndex: number
   date: string
   events: DayEvent[]
+  eventsOrder?: 'time' | 'manual'
 }
 
 export interface WeeklyProgram {
@@ -189,13 +190,14 @@ export const CHURCH_CARD_TEMPLATES: ChurchCardTemplateDefinition[] = [
   },
 ]
 
-export type CardTextAlign = 'left' | 'center'
+export type CardTextAlign = 'left' | 'center' | 'right'
 
 export interface ChurchCardAlign {
   recipient?: CardTextAlign
   title?: CardTextAlign
   subtitle?: CardTextAlign
   body?: CardTextAlign
+  closing?: CardTextAlign
 }
 
 export interface ChurchCard {
@@ -209,6 +211,9 @@ export interface ChurchCard {
   eventDate?: string
   eventTime?: string
   location?: string
+  showEventBlock?: boolean
+  documentDate?: string
+  fontScale?: number
   align?: ChurchCardAlign
   createdAt: string
   updatedAt: string

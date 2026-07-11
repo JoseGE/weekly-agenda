@@ -69,6 +69,10 @@ export function HomePage() {
     setGeneratingImageId(programId)
     try {
       await downloadProgramImage(program, settings.churchName, members)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'No se pudo generar la imagen para WhatsApp'
+      window.alert(message)
     } finally {
       setGeneratingImageId(null)
     }

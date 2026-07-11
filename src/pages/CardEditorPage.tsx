@@ -1,18 +1,68 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Download, ImageDown } from 'lucide-react'
 import { CardFieldAlign } from '@/components/cards/CardFieldAlign'
+import { CardBodyFormatToolbar } from '@/components/cards/CardBodyFormatToolbar'
+import { CardFontScaleControl } from '@/components/cards/CardFontScaleControl'
 import { ChurchCardShareImage } from '@/components/share/ChurchCardShareImage'
 import { useApp } from '@/context/AppContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { CENTRAL_CARD_TAGLINE, getCardFieldAlign, getCardTemplateDefinition } from '@/lib/card-utils'
+import { indentTextareaBulletLines } from '@/lib/card-body-format'
+import {
+  CENTRAL_CARD_TAGLINE,
+  getCardFieldAlign,
+  getCardFontScale,
+  getCardTemplateDefinition,
+  getDefaultCardDocumentDate,
+} from '@/lib/card-utils'
 import { downloadCardImage } from '@/lib/download-card-image'
 import { downloadCardPdf } from '@/lib/download-card-pdf'
 import type { CardTextAlign, ChurchCard, ChurchCardAlign } from '@/types'
+
+const PREVIEW_SCALE = 0.34
+
+function useAutoResizeTextarea(value: string) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+
+  const resize = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.max(el.scrollHeight, 192)}px`
+  }, [])
+
+  useEffect(() => {
+    resize()
+  }, [value, resize])
+
+  return { ref, resize }
+}
+
+function usePreviewHeight(scale: number) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [scaledHeight, setScaledHeight] = useState(459)
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+
+    const update = () => {
+      setScaledHeight(Math.ceil(el.offsetHeight * scale))
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [scale])
+
+  return { contentRef, scaledHeight }
+}
 
 export function CardEditorPage() {
   const { id } = useParams<{ id: string }>()
@@ -21,10 +71,20 @@ export function CardEditorPage() {
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const [generatingImage, setGeneratingImage] = useState(false)
 
+  const bodyTextarea = useAutoResizeTextarea(card?.body ?? '')
+  const preview = usePreviewHeight(PREVIEW_SCALE)
+
   const templateDef = useMemo(
     () => (card ? getCardTemplateDefinition(card.template) : null),
     [card],
   )
+
+  const bodyStats = useMemo(() => {
+    if (!card) return { lines: 0, chars: 0 }
+    const text = card.body
+    const lines = text ? text.split('\n').length : 0
+    return { lines, chars: text.length }
+  }, [card])
 
   const showEventFields =
     card &&
@@ -99,6 +159,24 @@ export function CardEditorPage() {
             </span>
           </div>
 
+          <CardFontScaleControl
+            value={getCardFontScale(card)}
+            onChange={(fontScale) => save({ fontScale })}
+          />
+
+          <div className="space-y-2">
+            <Label htmlFor="card-document-date">Fecha de la carta</Label>
+            <Input
+              id="card-document-date"
+              type="date"
+              value={card.documentDate ?? getDefaultCardDocumentDate()}
+              onChange={(e) => save({ documentDate: e.target.value })}
+            />
+            <p className="text-xs text-stone-400">
+              Aparece como &quot;Santo Domingo Norte, [fecha]&quot; arriba del destinatario
+            </p>
+          </div>
+
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="card-recipient">Destinatario (opcional)</Label>
@@ -155,17 +233,56 @@ export function CardEditorPage() {
                 onChange={(align) => saveAlign('body', align)}
               />
             </div>
+            <CardBodyFormatToolbar
+              textareaRef={bodyTextarea.ref}
+              onChange={(value) => save({ body: value })}
+            />
             <Textarea
+              ref={bodyTextarea.ref}
               id="card-body"
               value={card.body}
               onChange={(e) => save({ body: e.target.value })}
-              rows={6}
+              onInput={bodyTextarea.resize}
+              onKeyDown={(e) => {
+                if (e.key !== 'Tab') return
+                e.preventDefault()
+                const textarea = e.currentTarget
+                const { value, selectionStart, selectionEnd } = indentTextareaBulletLines(
+                  textarea,
+                  e.shiftKey ? -1 : 1,
+                )
+                save({ body: value })
+                requestAnimationFrame(() => {
+                  textarea.focus()
+                  textarea.setSelectionRange(selectionStart, selectionEnd)
+                })
+              }}
+              className="min-h-48 resize-y leading-relaxed"
               placeholder={templateDef.defaultBody}
             />
+            <p className="text-xs text-stone-400">
+              {bodyStats.lines} {bodyStats.lines === 1 ? 'línea' : 'líneas'} · {bodyStats.chars}{' '}
+              {bodyStats.chars === 1 ? 'carácter' : 'caracteres'}
+            </p>
           </div>
 
           {showEventFields ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4 rounded-lg border border-stone-200/80 bg-stone-50/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="card-show-event-block">Bloque de fecha y lugar</Label>
+                  <p className="text-xs text-stone-500">
+                    Muestra la caja con fecha, hora y lugar en la carta
+                  </p>
+                </div>
+                <Switch
+                  id="card-show-event-block"
+                  checked={card.showEventBlock !== false}
+                  onCheckedChange={(checked) => save({ showEventBlock: checked })}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="card-date">Fecha del evento</Label>
                 <Input
@@ -193,11 +310,18 @@ export function CardEditorPage() {
                   placeholder="Ej: Templo principal"
                 />
               </div>
+              </div>
             </div>
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="card-closing">Cierre</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="card-closing">Cierre</Label>
+              <CardFieldAlign
+                value={getCardFieldAlign(card, 'closing')}
+                onChange={(align) => saveAlign('closing', align)}
+              />
+            </div>
             <Input
               id="card-closing"
               value={card.closing ?? ''}
@@ -209,10 +333,22 @@ export function CardEditorPage() {
 
         <aside className="min-w-0">
           <div className="sticky top-24 space-y-3">
-            <p className="text-sm font-medium text-stone-600">Vista previa</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-stone-600">Vista previa</p>
+              <span className="text-xs text-stone-400">
+                {Math.round(getCardFontScale(card) * 100)}%
+              </span>
+            </div>
             <div className="overflow-hidden rounded-xl border border-stone-200/80 bg-stone-100 shadow-[var(--shadow-card)]">
-              <div className="relative mx-auto h-[459px] w-full max-w-[368px] overflow-hidden">
-                <div className="absolute left-0 top-0 origin-top-left scale-[0.34]">
+              <div
+                className="relative mx-auto w-full max-w-[368px] overflow-y-auto max-h-[70vh]"
+                style={{ height: preview.scaledHeight }}
+              >
+                <div
+                  ref={preview.contentRef}
+                  className="absolute left-0 top-0 origin-top-left"
+                  style={{ transform: `scale(${PREVIEW_SCALE})` }}
+                >
                   <ChurchCardShareImage card={card} churchName={settings.churchName} />
                 </div>
               </div>

@@ -12,7 +12,7 @@ import {
   formatTimeForDisplay,
   getDayLabel,
   hasAssignmentContent,
-  sortEventsByTime,
+  getOrderedEvents,
 } from '@/lib/program-utils'
 import {
   formatBirthdayDayLabel,
@@ -133,7 +133,7 @@ function PdfBirthdaysSection({
 function PdfDaySection({ styles, day }: { styles: PdfStyles; day: ProgramDay }) {
   if (day.events.length === 0) return null
 
-  const [firstEvent, ...restEvents] = sortEventsByTime(day.events)
+  const [firstEvent, ...restEvents] = getOrderedEvents(day)
 
   return (
     <View style={styles.daySection}>

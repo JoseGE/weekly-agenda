@@ -1,10 +1,25 @@
 import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, Eye, ImageDown, Plus } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { ArrowLeft, ArrowUpDown, Download, Eye, ImageDown, Link2, Plus } from 'lucide-react'
 import { useApp } from '@/context/AppContext'
 import { AssignmentCounter } from '@/components/AssignmentCounter'
 import { BirthdaysSection } from '@/components/BirthdaysSection'
-import { EventCard } from '@/components/EventCard'
+import { SortableEventCard } from '@/components/SortableEventCard'
 import { ProgramCompletenessPanel } from '@/components/ProgramCompletenessPanel'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,12 +30,14 @@ import { getPeopleAtLimit } from '@/lib/assignment-rules'
 import { downloadProgramImage } from '@/lib/download-program-image'
 import { downloadProgramPdf } from '@/lib/download-program-pdf'
 import { getPdfFontScale, setPdfFontScale } from '@/lib/pdf-font-scale'
+import { buildProgramPreviewUrl } from '@/lib/program-preview-url'
 import { getProgramIssues, isProgramReadyToComplete } from '@/lib/program-validation'
 import {
   createEmptyEvent,
   findProgramForWeek,
   formatWeekRange,
   getDayLabel,
+  getOrderedEvents,
   normalizeWeekStartDate,
   rescheduleProgramWeek,
 } from '@/lib/program-utils'
@@ -42,7 +59,13 @@ export function ProgramEditorPage() {
   const [generatingImage, setGeneratingImage] = useState(false)
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
   const [pdfFontScale, setPdfFontScaleState] = useState(getPdfFontScale)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(() => new Set())
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
 
   useEffect(() => {
     if (!program) return
@@ -132,6 +155,25 @@ export function ProgramEditorPage() {
     })
   }
 
+  const handleDragEnd = (dayIndex: number, event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const day = program.days[dayIndex]
+    const orderedEvents = getOrderedEvents(day)
+    const oldIndex = orderedEvents.findIndex((e) => e.id === active.id)
+    const newIndex = orderedEvents.findIndex((e) => e.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const newOrder = arrayMove(orderedEvents, oldIndex, newIndex)
+    updateDay(dayIndex, { ...day, events: newOrder, eventsOrder: 'manual' })
+  }
+
+  const resetToTimeOrder = (dayIndex: number) => {
+    const day = program.days[dayIndex]
+    updateDay(dayIndex, { ...day, eventsOrder: 'time' })
+  }
+
   const handleDownloadPdf = async () => {
     setGenerating(true)
     try {
@@ -147,10 +189,25 @@ export function ProgramEditorPage() {
     setPdfFontScale(scale)
   }
 
+  const handleCopyPreviewLink = async () => {
+    const url = buildProgramPreviewUrl(program.id, pdfFontScale)
+    try {
+      await navigator.clipboard.writeText(url)
+      setLinkCopied(true)
+      window.setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      window.prompt('Copia este enlace:', url)
+    }
+  }
+
   const handleDownloadImage = async () => {
     setGeneratingImage(true)
     try {
-      await downloadProgramImage(program, settings.churchName, members)
+      await downloadProgramImage(program, settings.churchName, members, pdfFontScale)
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'No se pudo generar la imagen para WhatsApp'
+      window.alert(message)
     } finally {
       setGeneratingImage(false)
     }
@@ -211,6 +268,14 @@ export function ProgramEditorPage() {
             <Eye className="h-4 w-4" />
             Vista previa PDF
           </Button>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleCopyPreviewLink}
+          >
+            <Link2 className="h-4 w-4" />
+            {linkCopied ? 'Enlace copiado' : 'Copiar enlace'}
+          </Button>
           <Button onClick={handleDownloadPdf} disabled={generating} className="w-full sm:w-auto">
             <Download className="h-4 w-4" />
             {generating ? 'Generando...' : 'Descargar PDF'}
@@ -266,12 +331,34 @@ export function ProgramEditorPage() {
               </TabsList>
             </div>
 
-            {program.days.map((day) => (
+            {program.days.map((day) => {
+              const orderedEvents = getOrderedEvents(day)
+
+              return (
               <TabsContent key={day.dayIndex} value={String(day.dayIndex)} className="min-w-0">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <h3 className="font-display text-lg font-semibold break-words text-navy-dark">
-                    {getDayLabel(day)}
-                  </h3>
+                  <div className="min-w-0 space-y-2">
+                    <h3 className="font-display text-lg font-semibold break-words text-navy-dark">
+                      {getDayLabel(day)}
+                    </h3>
+                    {day.eventsOrder === 'manual' && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Orden manual
+                        </Badge>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 gap-1 px-2 text-xs text-stone-600"
+                          onClick={() => resetToTimeOrder(day.dayIndex)}
+                        >
+                          <ArrowUpDown className="h-3.5 w-3.5" />
+                          Ordenar por hora
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
                     {day.events.length > 0 && (
                       <>
@@ -319,29 +406,41 @@ export function ProgramEditorPage() {
                     No hay eventos para este día.
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {day.events.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        program={program}
-                        event={event}
-                        collapsed={!expandedEvents.has(event.id)}
-                        onToggleCollapsed={() => toggleEventExpanded(event.id)}
-                        onUpdate={(updated) => updateEvent(day.dayIndex, event.id, updated)}
-                        onDelete={() => {
-                          deleteEvent(day.dayIndex, event.id)
-                          setExpandedEvents((prev) => {
-                            const next = new Set(prev)
-                            next.delete(event.id)
-                            return next
-                          })
-                        }}
-                      />
-                    ))}
-                  </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(event) => handleDragEnd(day.dayIndex, event)}
+                  >
+                    <SortableContext
+                      items={orderedEvents.map((e) => e.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-4">
+                        {orderedEvents.map((event) => (
+                          <SortableEventCard
+                            key={event.id}
+                            program={program}
+                            event={event}
+                            collapsed={!expandedEvents.has(event.id)}
+                            onToggleCollapsed={() => toggleEventExpanded(event.id)}
+                            onUpdate={(updated) => updateEvent(day.dayIndex, event.id, updated)}
+                            onDelete={() => {
+                              deleteEvent(day.dayIndex, event.id)
+                              setExpandedEvents((prev) => {
+                                const next = new Set(prev)
+                                next.delete(event.id)
+                                return next
+                              })
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </TabsContent>
-            ))}
+              )
+            })}
           </Tabs>
         </div>
 
@@ -373,6 +472,7 @@ export function ProgramEditorPage() {
           }
         >
           <ProgramPdfPreview
+            variant="modal"
             program={program}
             churchName={settings.churchName}
             members={members}

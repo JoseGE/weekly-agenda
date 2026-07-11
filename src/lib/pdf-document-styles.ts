@@ -19,7 +19,7 @@ export const pdfColors = {
   partBg: '#fafaf9',
 } as const
 
-function scaleSize(value: number, fontScale: number): number {
+export function scaleSize(value: number, fontScale: number): number {
   return Math.round(value * fontScale * 10) / 10
 }
 

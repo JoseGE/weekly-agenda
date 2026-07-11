@@ -1,4 +1,4 @@
-import { AlignCenter, AlignLeft } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CardTextAlign } from '@/types'
 
@@ -35,6 +35,19 @@ export function CardFieldAlign({ value, onChange }: CardFieldAlignProps) {
         )}
       >
         <AlignCenter className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        title="Alinear a la derecha"
+        aria-label="Alinear a la derecha"
+        aria-pressed={value === 'right'}
+        onClick={() => onChange('right')}
+        className={cn(
+          'rounded p-1 text-stone-500 transition-colors',
+          value === 'right' && 'bg-white text-navy-dark shadow-sm',
+        )}
+      >
+        <AlignRight className="h-4 w-4" />
       </button>
     </div>
   )

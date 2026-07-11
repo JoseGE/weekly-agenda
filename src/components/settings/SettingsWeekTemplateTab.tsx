@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { createEmptyTemplateEvent, formatTimeForDisplay } from '@/lib/program-utils'
+import { applyMinistryTitlePrefix } from '@/lib/ministry-title'
 import { DAY_NAMES, DAY_SHORT, type WeekTemplateEvent } from '@/types'
 
 function TemplateEventRow({
@@ -56,9 +57,13 @@ function TemplateEventRow({
           <Label>Ministerio (opcional)</Label>
           <Select
             value={event.ministryId ?? 'none'}
-            onValueChange={(value) =>
-              onUpdate({ ministryId: value === 'none' ? undefined : value })
-            }
+            onValueChange={(value) => {
+              const ministryId = value === 'none' ? undefined : value
+              onUpdate({
+                ministryId,
+                title: applyMinistryTitlePrefix(event.title, ministryId, ministries),
+              })
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Ninguno" />

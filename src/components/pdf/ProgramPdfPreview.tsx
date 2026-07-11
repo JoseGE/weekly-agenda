@@ -12,45 +12,59 @@ import {
   PDF_FONT_SCALE_MIN,
   setPdfFontScale,
 } from '@/lib/pdf-font-scale'
+import { cn } from '@/lib/utils'
 import type { Member, WeeklyProgram } from '@/types'
 
-interface ProgramPdfPreviewProps {
+interface ProgramPdfPreviewBaseProps {
   program: WeeklyProgram
   churchName: string
   members: Member[]
   fontScale: number
   onFontScaleChange: (scale: number) => void
-  onClose: () => void
+  onPdfUrlChange?: (url: string | null) => void
 }
 
-export function ProgramPdfPreview({
-  program,
-  churchName,
-  members,
-  fontScale,
-  onFontScaleChange,
-  onClose,
-}: ProgramPdfPreviewProps) {
+type ProgramPdfPreviewProps = ProgramPdfPreviewBaseProps &
+  (
+    | { variant?: 'modal'; onClose: () => void }
+    | { variant: 'page'; onClose?: never }
+  )
+
+export function ProgramPdfPreview(props: ProgramPdfPreviewProps) {
+  const {
+    program,
+    churchName,
+    members,
+    fontScale,
+    onFontScaleChange,
+    onPdfUrlChange,
+    variant = 'modal',
+  } = props
+  const isPage = variant === 'page'
+  const onClose = variant === 'modal' ? props.onClose : undefined
+
   const [renderScale, setRenderScale] = useState(fontScale)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isPage) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [])
+  }, [isPage])
 
   useEffect(() => {
+    if (isPage || !onClose) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [isPage, onClose])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setRenderScale(fontScale), 200)
@@ -88,10 +102,12 @@ export function ProgramPdfPreview({
           if (previous) URL.revokeObjectURL(previous)
           return objectUrl
         })
+        if (objectUrl) onPdfUrlChange?.(objectUrl)
         setLoading(false)
       })
       .catch(() => {
         if (cancelled) return
+        onPdfUrlChange?.(null)
         setError('No se pudo generar la vista previa.')
         setLoading(false)
       })
@@ -100,7 +116,7 @@ export function ProgramPdfPreview({
       cancelled = true
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [documentNode])
+  }, [documentNode, onPdfUrlChange])
 
   useEffect(
     () => () => {
@@ -125,6 +141,88 @@ export function ProgramPdfPreview({
 
   const isUpdating = loading || renderScale !== fontScale
 
+  const fontControls = (
+    <div className="flex items-center gap-2 rounded-xl border border-stone-200/80 bg-paper px-3 py-2 shadow-sm">
+      <Label htmlFor="pdf-font-scale" className="shrink-0 text-sm font-medium text-stone-600">
+        Fuente
+      </Label>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => adjustScale(-0.05)}
+        disabled={fontScale <= PDF_FONT_SCALE_MIN}
+        aria-label="Reducir tamaño de fuente"
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <input
+        id="pdf-font-scale"
+        type="range"
+        min={PDF_FONT_SCALE_MIN}
+        max={PDF_FONT_SCALE_MAX}
+        step={0.05}
+        value={fontScale}
+        onChange={(event) => {
+          const next = clampPdfFontScale(Number(event.target.value))
+          onFontScaleChange(next)
+          setPdfFontScale(next)
+        }}
+        className="w-24 accent-church-gold sm:w-32"
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => adjustScale(0.05)}
+        disabled={fontScale >= PDF_FONT_SCALE_MAX}
+        aria-label="Aumentar tamaño de fuente"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+      <span className="min-w-12 text-center text-sm font-semibold tabular-nums text-navy-dark">
+        {formatPdfFontScaleLabel(fontScale)}
+      </span>
+    </div>
+  )
+
+  const previewContent = (
+    <div
+      className={cn(
+        'flex w-full flex-col overflow-hidden bg-white',
+        isPage
+          ? 'h-full min-h-0'
+          : 'max-w-4xl rounded-[var(--radius-card)] border border-stone-200/70 shadow-[var(--shadow-card-hover)]',
+      )}
+    >
+      {error ? (
+        <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-stone-500 sm:p-8">
+          {error}
+        </div>
+      ) : isUpdating || !pdfUrl ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-stone-500">
+          <Loader2 className="h-8 w-8 animate-spin text-church-gold" />
+          <p className="text-sm">Generando vista previa…</p>
+        </div>
+      ) : (
+        <iframe
+          title="Vista previa del programa PDF"
+          src={`${pdfUrl}#view=FitH&toolbar=0&navpanes=0`}
+          className={cn(
+            'w-full flex-1 border-0 bg-white',
+            isPage ? 'min-h-0' : 'min-h-[70vh]',
+          )}
+        />
+      )}
+    </div>
+  )
+
+  if (isPage) {
+    return <div className="h-full min-h-0">{previewContent}</div>
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-stone-900/30 backdrop-blur-[2px]">
       <header className="shrink-0 border-b border-stone-200/80 bg-white/95 shadow-sm backdrop-blur-md">
@@ -140,87 +238,35 @@ export function ProgramPdfPreview({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-            <div className="flex items-center gap-2 rounded-xl border border-stone-200/80 bg-paper px-3 py-2 shadow-sm">
-              <Label htmlFor="pdf-font-scale" className="shrink-0 text-sm font-medium text-stone-600">
-                Fuente
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => adjustScale(-0.05)}
-                disabled={fontScale <= PDF_FONT_SCALE_MIN}
-                aria-label="Reducir tamaño de fuente"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <input
-                id="pdf-font-scale"
-                type="range"
-                min={PDF_FONT_SCALE_MIN}
-                max={PDF_FONT_SCALE_MAX}
-                step={0.05}
-                value={fontScale}
-                onChange={(event) => {
-                  const next = clampPdfFontScale(Number(event.target.value))
-                  onFontScaleChange(next)
-                  setPdfFontScale(next)
-                }}
-                className="w-24 accent-church-gold sm:w-32"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => adjustScale(0.05)}
-                disabled={fontScale >= PDF_FONT_SCALE_MAX}
-                aria-label="Aumentar tamaño de fuente"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <span className="min-w-12 text-center text-sm font-semibold tabular-nums text-navy-dark">
-                {formatPdfFontScaleLabel(fontScale)}
-              </span>
-            </div>
+            {fontControls}
 
             <Button type="button" onClick={handleDownload}>
               <Download className="h-4 w-4" />
               Descargar
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={onClose}
-              aria-label="Cerrar vista previa"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+
+            {onClose ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={onClose}
+                aria-label="Cerrar vista previa"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 justify-center overflow-hidden bg-gradient-to-b from-cream/90 via-paper to-cream-dark/80 p-3 sm:p-6">
-        <div className="flex h-full w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-card)] border border-stone-200/70 bg-white shadow-[var(--shadow-card-hover)]">
-          {error ? (
-            <div className="flex flex-1 items-center justify-center p-8 text-center text-stone-500">
-              {error}
-            </div>
-          ) : isUpdating || !pdfUrl ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-stone-500">
-              <Loader2 className="h-8 w-8 animate-spin text-church-gold" />
-              <p className="text-sm">Generando vista previa…</p>
-            </div>
-          ) : (
-            <iframe
-              title="Vista previa del programa PDF"
-              src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-              className="h-full w-full border-0 bg-white"
-            />
-          )}
-        </div>
+      <div
+        className={cn(
+          'flex justify-center overflow-hidden bg-gradient-to-b from-cream/90 via-paper to-cream-dark/80 p-3 sm:p-6',
+          'min-h-0 flex-1',
+        )}
+      >
+        {previewContent}
       </div>
     </div>
   )
