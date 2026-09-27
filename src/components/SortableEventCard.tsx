@@ -6,6 +6,8 @@ import type { DayEvent, WeeklyProgram } from '@/types'
 interface SortableEventCardProps {
   program: WeeklyProgram
   event: DayEvent
+  isRecurring?: boolean
+  onRecurringChange?: (recurring: boolean) => void
   collapsed: boolean
   onToggleCollapsed: () => void
   onUpdate: (event: DayEvent) => void
@@ -15,6 +17,8 @@ interface SortableEventCardProps {
 export function SortableEventCard({
   program,
   event,
+  isRecurring,
+  onRecurringChange,
   collapsed,
   onToggleCollapsed,
   onUpdate,
@@ -34,6 +38,8 @@ export function SortableEventCard({
       <EventCard
         program={program}
         event={event}
+        isRecurring={isRecurring}
+        onRecurringChange={onRecurringChange}
         collapsed={collapsed}
         onToggleCollapsed={onToggleCollapsed}
         onUpdate={onUpdate}

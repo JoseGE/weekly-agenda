@@ -5,6 +5,7 @@ import { ChurchCardShareImage } from '@/components/share/ChurchCardShareImage'
 import type { ChurchCard } from '@/types'
 
 export async function downloadCardImage(card: ChurchCard, churchName: string): Promise<void> {
+  await document.fonts.ready
   const container = document.createElement('div')
   container.style.position = 'fixed'
   container.style.left = '-10000px'

@@ -1,9 +1,13 @@
 import type { ChurchCard } from '@/types'
-import { CardBodyContent } from '@/components/cards/CardBodyContent'
+import { CardRichTextContent } from '@/components/cards/CardRichTextContent'
+import { CardSignaturesDisplay } from '@/components/cards/CardSignaturesDisplay'
+import { FriendCardShareImage } from '@/components/share/FriendCardShareImage'
 import { getCardFontSizes } from '@/lib/card-font-scale'
+import { isFriendCard } from '@/lib/card-layout'
+import { CARD_SEAL_SRC } from '@/lib/card-seal'
 import {
   CARD_COUNCIL_ADDRESS,
-  CARD_COUNCIL_NAME,
+  CARD_COUNCIL_PHONES,
   cardBlockClassName,
   formatCardDocumentLine,
   formatCardEventDate,
@@ -13,7 +17,16 @@ import {
   getCardTemplateDefinition,
   getDefaultCardDocumentDate,
   shouldShowCardEventBlock,
+  shouldShowCardSeal,
+  shouldShowCardTemplateBadge,
 } from '@/lib/card-utils'
+import {
+  cardRichTextToPlainText,
+  formatCardRecipientLine,
+  getCardRichTextDocument,
+  shouldShowCardTitle,
+} from '@/lib/card-rich-text'
+import { getCardFontCss, getCardSectionTextStyle } from '@/lib/card-text-styles'
 import { cn } from '@/lib/utils'
 
 interface ChurchCardShareImageProps {
@@ -32,12 +45,19 @@ function OrnamentDivider() {
 }
 
 export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageProps) {
+  if (isFriendCard(card)) {
+    return <FriendCardShareImage card={card} churchName={churchName} />
+  }
+
   const templateDef = getCardTemplateDefinition(card.template)
   const title = card.title.trim() || templateDef.name
+  const titleVisible = shouldShowCardTitle(card)
   const showEventBlock = shouldShowCardEventBlock(card)
+  const bodyDocument = getCardRichTextDocument(card)
+  const bodyPlainText = cardRichTextToPlainText(bodyDocument)
 
   const fontScale = getCardFontScale(card)
-  const sizes = getCardFontSizes(card.body, fontScale)
+  const sizes = getCardFontSizes(bodyPlainText, fontScale)
   const documentDate = card.documentDate || getDefaultCardDocumentDate()
 
   const recipientAlign = getCardFieldAlign(card, 'recipient')
@@ -45,6 +65,20 @@ export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageP
   const subtitleAlign = getCardFieldAlign(card, 'subtitle')
   const bodyAlign = getCardFieldAlign(card, 'body')
   const closingAlign = getCardFieldAlign(card, 'closing')
+  const recipientStyle = getCardSectionTextStyle(card, 'recipient')
+  const titleStyle = getCardSectionTextStyle(card, 'title')
+  const subtitleStyle = getCardSectionTextStyle(card, 'subtitle')
+  const closingStyle = getCardSectionTextStyle(card, 'closing')
+  const recipientLine = formatCardRecipientLine(card)
+
+  const blockTextStyle = (style: ReturnType<typeof getCardSectionTextStyle>) => ({
+    fontSize: style.fontSizePt * 2,
+    color: style.color,
+    fontFamily: getCardFontCss(style.fontFamily),
+    fontWeight: style.bold ? 700 : 400,
+    fontStyle: style.italic ? 'italic' : 'normal',
+    textDecorationLine: style.underline ? 'underline' : 'none',
+  } as const)
 
   return (
     <div
@@ -65,7 +99,7 @@ export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageP
             className="mt-4 self-center text-center font-bold tracking-wide text-[#0f2d4a]"
             style={{ fontSize: sizes.councilName }}
           >
-            {CARD_COUNCIL_NAME}
+            {churchName}
           </p>
           <p
             className="mt-2 self-center max-w-2xl text-center leading-snug text-stone-600"
@@ -73,13 +107,21 @@ export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageP
           >
             {CARD_COUNCIL_ADDRESS}
           </p>
-
-          <span
-            className="mt-6 self-center rounded-full bg-[#e8f0f7] px-4 py-1 text-center font-bold uppercase tracking-wider text-[#1a4d7c]"
-            style={{ fontSize: sizes.badge }}
+          <p
+            className="mt-1 self-center text-center text-stone-600"
+            style={{ fontSize: sizes.councilAddress }}
           >
-            {templateDef.name}
-          </span>
+            {CARD_COUNCIL_PHONES}
+          </p>
+
+          {shouldShowCardTemplateBadge(card) ? (
+            <span
+              className="mt-6 self-center rounded-full bg-[#e8f0f7] px-4 py-1 text-center font-bold uppercase tracking-wider text-[#1a4d7c]"
+              style={{ fontSize: sizes.badge }}
+            >
+              {templateDef.name}
+            </span>
+          ) : null}
 
           <p
             className="mt-6 w-full text-right text-stone-800"
@@ -88,44 +130,53 @@ export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageP
             {formatCardDocumentLine(documentDate)}
           </p>
 
-          {card.recipient?.trim() ? (
+          {recipientLine ? (
             <p
               className={cn(
-                'mt-4 break-words italic text-stone-600',
+                'mt-4 break-words',
                 cardBlockClassName(recipientAlign),
               )}
-              style={{ fontSize: sizes.recipient }}
+              style={blockTextStyle(recipientStyle)}
             >
-              Para: {card.recipient.trim()}
+              {recipientLine}
             </p>
           ) : null}
 
-          <h1
-            className={cn(
-              'mt-4 break-words font-bold leading-tight text-[#0f2d4a]',
-              cardBlockClassName(titleAlign),
-            )}
-            style={{ fontSize: sizes.title }}
-          >
-            {title}
-          </h1>
+          {titleVisible ? (
+            <h1
+              className={cn(
+                'mt-4 break-words leading-tight',
+                cardBlockClassName(titleAlign),
+              )}
+              style={blockTextStyle(titleStyle)}
+            >
+              {title}
+            </h1>
+          ) : null}
           {card.subtitle?.trim() ? (
             <p
-              className={cn('mt-2 break-words text-[#1a4d7c]', cardBlockClassName(subtitleAlign))}
-              style={{ fontSize: sizes.subtitle }}
+              className={cn('mt-2 break-words', cardBlockClassName(subtitleAlign))}
+              style={blockTextStyle(subtitleStyle)}
             >
               {card.subtitle.trim()}
             </p>
           ) : null}
 
-          <div className="my-6 h-0.5 w-12 self-center rounded-full bg-[#c47a2c]" />
+          {titleVisible || card.subtitle?.trim() ? (
+            <div className="my-6 h-0.5 w-12 self-center rounded-full bg-[#c47a2c]" />
+          ) : (
+            <div className="h-5" aria-hidden />
+          )}
 
-          {card.body.trim() ? (
+          {bodyPlainText.trim() ? (
             <div className={cn('break-words', cardBlockClassName(bodyAlign))}>
-              <CardBodyContent
-                body={card.body}
-                fontSize={sizes.body}
-                lineHeight={sizes.bodyLineHeight}
+              <CardRichTextContent
+                document={bodyDocument}
+                defaultFontSize={sizes.body}
+                defaultLineHeight={sizes.bodyLineHeight}
+                defaultAlign={bodyAlign}
+                defaultColor="#292524"
+                fontScale={fontScale}
                 className="text-stone-800"
               />
             </div>
@@ -163,24 +214,27 @@ export function ChurchCardShareImage({ card, churchName }: ChurchCardShareImageP
           {card.closing?.trim() ? (
             <p
               className={cn(
-                'mt-8 break-words font-bold text-[#c47a2c]',
+                'mt-8 break-words',
                 cardBlockClassName(closingAlign),
               )}
-              style={{ fontSize: sizes.closing }}
+              style={blockTextStyle(closingStyle)}
             >
               {card.closing.trim()}
             </p>
           ) : null}
 
-          <div className="mt-auto w-full self-stretch pt-10">
-            <OrnamentDivider />
-            <p
-              className="mt-4 text-center font-bold text-[#0f2d4a]"
-              style={{ fontSize: sizes.footerTitle }}
-            >
-              {churchName}
-            </p>
-          </div>
+          <CardSignaturesDisplay card={card} sizes={sizes} />
+
+          {shouldShowCardSeal(card) ? (
+            <div className="mt-6 flex w-full justify-end opacity-70">
+              <img
+                src={CARD_SEAL_SRC}
+                alt="Sello del concilio"
+                className="pointer-events-none h-[220px] w-[220px] object-contain"
+                style={{ transform: 'rotate(-7deg)' }}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

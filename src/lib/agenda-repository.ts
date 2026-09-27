@@ -2,6 +2,7 @@ import { insforge, isInsForgeConfigured } from '@/lib/insforge'
 import { getDefaultAppData } from '@/lib/program-utils'
 import { deduplicateAllMembers } from '@/lib/member-utils'
 import { STORAGE_KEY, type AppData } from '@/types'
+import { cardRichTextToPlainText, sanitizeCardRichTextDocument } from '@/lib/card-rich-text'
 
 const STATE_ID = 'default'
 const TABLE = 'weekly_agenda_state'
@@ -21,7 +22,17 @@ export function normalizeAppData(raw: Partial<AppData> | null | undefined): AppD
         ? raw.positions
         : defaults.positions,
     programs: Array.isArray(raw.programs) ? raw.programs : defaults.programs,
-    cards: Array.isArray(raw.cards) ? raw.cards : defaults.cards,
+    cards: Array.isArray(raw.cards)
+      ? raw.cards.map((card) => {
+          if (!card.bodyRich) return card
+          const bodyRich = sanitizeCardRichTextDocument(card.bodyRich)
+          return {
+            ...card,
+            bodyRich,
+            body: cardRichTextToPlainText(bodyRich),
+          }
+        })
+      : defaults.cards,
     weekTemplate:
       Array.isArray(raw.weekTemplate) && raw.weekTemplate.length === 7
         ? raw.weekTemplate

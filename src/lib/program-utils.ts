@@ -63,6 +63,7 @@ export function createEmptyWeekTemplate(): WeekTemplateDay[] {
 export function templateEventToDayEvent(template: WeekTemplateEvent): DayEvent {
   return {
     id: uuidv4(),
+    templateEventId: template.id,
     time: template.time,
     title: template.title,
     location: template.location ?? '',

@@ -28,6 +28,9 @@ export interface CardFontSizes {
   eventTime: number
   eventLocation: number
   closing: number
+  signatureName: number
+  signatureTitle: number
+  signatureLineWidth: number
   footerTitle: number
   footerSub: number
 }
@@ -58,6 +61,9 @@ export function getCardFontSizes(body: string, fontScale = 1): CardFontSizes {
     eventTime: scaleCardFontSize(20, fontScale),
     eventLocation: scaleCardFontSize(18, fontScale),
     closing: scaleCardFontSize(24, fontScale),
+    signatureName: scaleCardFontSize(18, fontScale),
+    signatureTitle: scaleCardFontSize(14, fontScale),
+    signatureLineWidth: scaleCardFontSize(120, fontScale),
     footerTitle: scaleCardFontSize(20, fontScale),
     footerSub: scaleCardFontSize(16, fontScale),
   }

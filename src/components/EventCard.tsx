@@ -14,7 +14,6 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { RoleAssignmentEditor } from '@/components/RoleAssignmentEditor'
-import { getEventSummary } from '@/lib/program-utils'
 import { applyMinistryTitlePrefix } from '@/lib/ministry-title'
 import { cn } from '@/lib/utils'
 import type { DayEvent, WeeklyProgram } from '@/types'
@@ -22,6 +21,8 @@ import type { DayEvent, WeeklyProgram } from '@/types'
 interface EventCardProps {
   program: WeeklyProgram
   event: DayEvent
+  isRecurring?: boolean
+  onRecurringChange?: (recurring: boolean) => void
   onUpdate: (event: DayEvent) => void
   onDelete: () => void
   collapsed: boolean
@@ -33,6 +34,8 @@ interface EventCardProps {
 export function EventCard({
   program,
   event,
+  isRecurring = false,
+  onRecurringChange,
   onUpdate,
   onDelete,
   collapsed,
@@ -87,9 +90,7 @@ export function EventCard({
           className="min-w-0 flex-1 text-left"
           onClick={onToggleCollapsed}
         >
-          <p className="line-clamp-2 break-words text-sm font-semibold text-navy-dark">
-            {getEventSummary(event)}
-          </p>
+        
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <Badge variant={event.isSpecial ? 'warning' : 'outline'} className="text-xs">
               {event.isSpecial ? 'Especial' : 'Normal'}
@@ -97,6 +98,11 @@ export function EventCard({
             {event.isSimpleAnnouncement && (
               <Badge variant="outline" className="text-xs">
                 Solo anuncio
+              </Badge>
+            )}
+            {isRecurring && (
+              <Badge variant="secondary" className="text-xs">
+                Recurrente
               </Badge>
             )}
             {!event.isSimpleAnnouncement && event.assignments.length > 0 && (
@@ -175,6 +181,19 @@ export function EventCard({
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+            {onRecurringChange ? (
+              <div className="flex min-w-0 items-start gap-2 sm:items-center">
+                <Switch
+                  id={`recurring-${event.id}`}
+                  checked={isRecurring}
+                  onCheckedChange={onRecurringChange}
+                  className="mt-0.5 shrink-0 sm:mt-0"
+                />
+                <Label htmlFor={`recurring-${event.id}`} className="break-words leading-snug">
+                  Evento recurrente (plantilla semanal)
+                </Label>
+              </div>
+            ) : null}
             <div className="flex min-w-0 items-start gap-2 sm:items-center">
               <Switch
                 id={`special-${event.id}`}

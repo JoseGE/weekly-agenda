@@ -22,7 +22,9 @@ import type {
   WeekTemplateDay,
   WeeklyProgram,
 } from '@/types'
-import { createEmptyCard } from '@/lib/card-utils'
+import { createEmptyCard, duplicateChurchCard } from '@/lib/card-utils'
+import { getCardLayout } from '@/lib/card-layout'
+import { legacyCardBodyToRichText } from '@/lib/card-rich-text'
 
 interface AppContextValue {
   data: AppData
@@ -53,6 +55,7 @@ interface AppContextValue {
   deleteProgram: (id: string) => void
   getProgram: (id: string) => WeeklyProgram | undefined
   createCard: (template?: ChurchCardTemplate, overrides?: Partial<ChurchCard>) => ChurchCard
+  duplicateCard: (id: string) => ChurchCard | undefined
   updateCard: (card: ChurchCard) => void
   deleteCard: (id: string) => void
   getCard: (id: string) => ChurchCard | undefined
@@ -322,10 +325,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const createCard = useCallback(
     (template: ChurchCardTemplate = 'invitacion', overrides?: Partial<ChurchCard>): ChurchCard => {
       const card = { ...createEmptyCard(template), ...overrides }
+      if (
+        overrides?.body !== undefined &&
+        overrides.bodyRich === undefined &&
+        getCardLayout(template) === 'standard'
+      ) {
+        card.bodyRich = legacyCardBodyToRichText(overrides.body, card.align?.body ?? 'left')
+      }
       updateData((prev) => ({ ...prev, cards: [card, ...prev.cards] }))
       return card
     },
     [updateData],
+  )
+
+  const duplicateCard = useCallback(
+    (id: string): ChurchCard | undefined => {
+      const source = data.cards.find((item) => item.id === id)
+      if (!source) return undefined
+      const card = duplicateChurchCard(source)
+      updateData((prev) => ({ ...prev, cards: [card, ...prev.cards] }))
+      return card
+    },
+    [data.cards, updateData],
   )
 
   const updateCard = useCallback(
@@ -384,6 +405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteProgram,
       getProgram,
       createCard,
+      duplicateCard,
       updateCard,
       deleteCard,
       getCard,
@@ -411,6 +433,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteProgram,
       getProgram,
       createCard,
+      duplicateCard,
       updateCard,
       deleteCard,
       getCard,

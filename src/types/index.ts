@@ -1,4 +1,4 @@
-export type RoleId =
+export type FixedRoleId =
   | 'dirige'
   | 'devocional'
   | 'mensaje'
@@ -8,6 +8,10 @@ export type RoleId =
   | 'cultural'
   | 'himnos'
   | 'culto-altar'
+
+export const CUSTOM_ROLE_ID_PREFIX = 'custom:'
+
+export type RoleId = FixedRoleId | `${typeof CUSTOM_ROLE_ID_PREFIX}${string}`
 
 export interface RoleDefinition {
   id: RoleId
@@ -67,6 +71,8 @@ export interface RoleAssignment {
   roleName: string
   members: string[]
   assignOnEventDay?: boolean
+  /** Solo para partes personalizadas (no listadas en FIXED_ROLES). */
+  allowMultiple?: boolean
 }
 
 export interface WeekTemplateEvent {
@@ -92,6 +98,8 @@ export interface DayEvent {
   isSpecial: boolean
   isSimpleAnnouncement: boolean
   ministryId?: string
+  /** Vincula el evento con la plantilla semanal recurrente. */
+  templateEventId?: string
   assignments: RoleAssignment[]
 }
 
@@ -125,14 +133,26 @@ export type ChurchCardTemplate =
   | 'bienvenida'
   | 'oracion'
   | 'libre'
+  | 'amigos'
+
+export type ChurchCardLayout = 'standard' | 'friend'
 
 export interface ChurchCardTemplateDefinition {
   id: ChurchCardTemplate
   name: string
   description: string
+  layout?: ChurchCardLayout
+  category?: 'formal' | 'friends'
   defaultTitle: string
   defaultBody: string
   defaultClosing: string
+  defaultGreeting?: string
+  defaultQuote?: string
+  defaultQuoteReference?: string
+  defaultSubtitle?: string
+  defaultEventDateLabel?: string
+  defaultEventTime?: string
+  defaultFriendSignature?: string
 }
 
 export const CHURCH_CARD_TEMPLATES: ChurchCardTemplateDefinition[] = [
@@ -188,9 +208,77 @@ export const CHURCH_CARD_TEMPLATES: ChurchCardTemplateDefinition[] = [
     defaultBody: '',
     defaultClosing: '¡Dios le bendiga!',
   },
+  {
+    id: 'amigos',
+    name: 'Carta para amigos',
+    description: 'Invitación cálida y personal con cita bíblica y detalles del evento',
+    layout: 'friend',
+    category: 'friends',
+    defaultTitle: 'Una invitación especial',
+    defaultGreeting: 'Querido amigo, querida amiga:',
+    defaultBody:
+      'Me complace invitarte a un tiempo especial de adoración, reflexión y comunión. Será una oportunidad para acercarnos más a Dios y compartir juntos en fe.',
+    defaultQuote: 'He venido para que tengas vida, y la tengas en abundancia.',
+    defaultQuoteReference: 'Juan 10:10b',
+    defaultSubtitle: 'Campaña Juvenil',
+    defaultEventDateLabel: '12, 13 y 14 de agosto de 2026',
+    defaultEventTime: '18:45',
+    defaultClosing: 'Te espero con amor.',
+    defaultFriendSignature: 'Jesús',
+  },
 ]
 
 export type CardTextAlign = 'left' | 'center' | 'right'
+
+export type CardFontFamily =
+  | 'Source Sans 3'
+  | 'Playfair Display'
+  | 'Cormorant Garamond'
+
+export type CardTextStyleSection = 'recipient' | 'title' | 'subtitle' | 'closing'
+
+export interface CardTextStyle {
+  fontFamily?: CardFontFamily
+  fontSizePt?: number
+  color?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+}
+
+export interface CardRichTextMark {
+  type: 'bold' | 'italic' | 'underline' | 'textStyle'
+  attrs?: {
+    color?: string
+    fontSize?: string
+    fontFamily?: string
+  }
+}
+
+export interface CardRichTextNode {
+  type: 'doc' | 'paragraph' | 'text' | 'bulletList' | 'orderedList' | 'listItem'
+  attrs?: {
+    textAlign?: CardTextAlign
+    indent?: number
+  }
+  content?: CardRichTextNode[]
+  marks?: CardRichTextMark[]
+  text?: string
+}
+
+export interface CardRichTextDocument extends CardRichTextNode {
+  type: 'doc'
+}
+
+export interface CardSignature {
+  id: string
+  name: string
+  title?: string
+  showLine?: boolean
+  showName?: boolean
+  showTitle?: boolean
+  memberId?: string
+}
 
 export interface ChurchCardAlign {
   recipient?: CardTextAlign
@@ -204,9 +292,19 @@ export interface ChurchCard {
   id: string
   template: ChurchCardTemplate
   title: string
+  showTitle?: boolean
+  /** Etiqueta del tipo de carta (Invitación, Bienvenida, etc.). */
+  showTemplateBadge?: boolean
   subtitle?: string
   recipient?: string
+  recipientLabel?: string
+  greeting?: string
+  quote?: string
+  quoteReference?: string
+  friendSignature?: string
+  eventDateLabel?: string
   body: string
+  bodyRich?: CardRichTextDocument
   closing?: string
   eventDate?: string
   eventTime?: string
@@ -215,6 +313,10 @@ export interface ChurchCard {
   documentDate?: string
   fontScale?: number
   align?: ChurchCardAlign
+  textStyles?: Partial<Record<CardTextStyleSection, CardTextStyle>>
+  signatures?: CardSignature[]
+  /** Sello oficial del concilio, abajo a la derecha. */
+  showSeal?: boolean
   createdAt: string
   updatedAt: string
 }

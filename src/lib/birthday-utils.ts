@@ -6,11 +6,16 @@ export interface DayBirthdays {
   members: Member[]
 }
 
+/** Weekly birthday report in program editor, PDF, and share image. */
+export const BIRTHDAYS_REPORT_ENABLED = true
+
 /** Members whose birth month/day falls on a program day (ignores birth year). */
 export function getBirthdaysByProgramDay(
   program: WeeklyProgram,
   members: Member[],
 ): DayBirthdays[] {
+  if (!BIRTHDAYS_REPORT_ENABLED) return []
+
   const withBirthday = members.filter((m) => m.active && m.birthDate?.trim())
 
   return program.days

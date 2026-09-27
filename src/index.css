@@ -88,6 +88,44 @@
   }
 }
 
+@layer components {
+  .card-rich-editor p {
+    min-block-size: 1.4em;
+    margin-block: 0.2em;
+    text-wrap: pretty;
+  }
+
+  .card-rich-editor ul,
+  .card-rich-editor ol {
+    padding-inline-start: 1.75rem;
+    margin-block: 0.45rem;
+  }
+
+  .card-rich-editor ul {
+    list-style: disc;
+  }
+
+  .card-rich-editor ol {
+    list-style: decimal;
+  }
+
+  .card-rich-editor li {
+    margin-block: 0.15rem;
+  }
+
+  .card-rich-editor li > ul {
+    list-style: circle;
+  }
+
+  .card-rich-editor li > ol {
+    list-style: lower-alpha;
+  }
+
+  .card-rich-editor ::selection {
+    background: rgb(196 122 44 / 0.22);
+  }
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;

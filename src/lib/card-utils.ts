@@ -3,17 +3,24 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
   CHURCH_CARD_TEMPLATES,
+  type CardSignature,
   type CardTextAlign,
   type ChurchCard,
   type ChurchCardAlign,
   type ChurchCardTemplate,
+  type Member,
+  type MemberPosition,
 } from '@/types'
+import { getPositionName } from '@/lib/program-utils'
 
 import { clampCardFontScale } from '@/lib/card-font-scale'
+import { getCardLayout } from '@/lib/card-layout'
+import { legacyCardBodyToRichText } from '@/lib/card-rich-text'
 
 export const CARD_COUNCIL_NAME = 'Concilio de las Iglesias Evangélicas Pentecostales Inc.'
 export const CARD_COUNCIL_ADDRESS =
   'C/ 2da. N. 38, los Guaricanos, Santo Domingo Norte, Rep. Dom.'
+export const CARD_COUNCIL_PHONES = 'Tel. (809) 568-5700 · Cel. (849) 251-4099'
 export const CARD_DOCUMENT_CITY = 'Santo Domingo Norte'
 
 export const CENTRAL_CARD_TAGLINE = 'Sembrando fe · Sirviendo con amor'
@@ -112,6 +119,14 @@ export function cardPdfBlockStyle(align: CardTextAlign): {
   return { width: '100%', alignSelf: 'stretch' }
 }
 
+export function shouldShowCardSeal(card: ChurchCard): boolean {
+  return card.showSeal === true
+}
+
+export function shouldShowCardTemplateBadge(card: ChurchCard): boolean {
+  return card.showTemplateBadge !== false
+}
+
 export function shouldShowCardEventBlock(card: ChurchCard): boolean {
   const supportsEvent =
     card.template === 'invitacion' ||
@@ -128,26 +143,28 @@ export function getCardTemplateDefinition(template: ChurchCardTemplate) {
 
 export function createParadaNinoCristianoSample(): ChurchCard {
   const card = createEmptyCard('anuncio')
+  const body = [
+    'Nos complace anunciar la tradicional Parada del Niño Cristiano, actividad dedicada a honrar el nacimiento de nuestro Salvador Jesucristo. Invitamos a toda la iglesia — niños, jóvenes y familias — a participar con gozo y reverencia.',
+    '',
+    '**PAUTAS DE PARTICIPACIÓN:**',
+    '',
+    '1. Puntualidad: Reunión a las 9:00 a.m. en el templo. El recorrido inicia puntualmente a las 9:30 a.m.',
+    '2. Vestimenta: Niños de blanco; adultos acompañantes con ropa formal modesta.',
+    '3. Aporte: Cada niño debe traer su figurilla del Niño Jesús o estrella, según lo coordinado con su maestro de Escuela Dominical.',
+    '4. Conducta: Mantener orden, silencio reverente y supervisión de los menores durante todo el recorrido.',
+    '5. Ruta: Salida desde el templo — recorrido por la calle principal — retorno al templo para un breve mensaje y refrigerio.',
+    '6. Colaboración: Maestros, líderes juveniles y diáconos apoyarán en la organización de filas por grupos de edad.',
+    '',
+    'Rogamos preparar el corazón y confirmar asistencia con su maestro o líder de sector.',
+  ].join('\n')
 
   return {
     ...card,
     title: 'Parada del Niño Cristiano',
     subtitle: 'Celebración navideña infantil',
     recipient: 'Hermanos, hermanas y amigos de la congregación',
-    body: [
-      'Nos complace anunciar la tradicional Parada del Niño Cristiano, actividad dedicada a honrar el nacimiento de nuestro Salvador Jesucristo. Invitamos a toda la iglesia — niños, jóvenes y familias — a participar con gozo y reverencia.',
-      '',
-      '**PAUTAS DE PARTICIPACIÓN:**',
-      '',
-      '1. Puntualidad: Reunión a las 9:00 a.m. en el templo. El recorrido inicia puntualmente a las 9:30 a.m.',
-      '2. Vestimenta: Niños de blanco; adultos acompañantes con ropa formal modesta.',
-      '3. Aporte: Cada niño debe traer su figurilla del Niño Jesús o estrella, según lo coordinado con su maestro de Escuela Dominical.',
-      '4. Conducta: Mantener orden, silencio reverente y supervisión de los menores durante todo el recorrido.',
-      '5. Ruta: Salida desde el templo — recorrido por la calle principal — retorno al templo para un breve mensaje y refrigerio.',
-      '6. Colaboración: Maestros, líderes juveniles y diáconos apoyarán en la organización de filas por grupos de edad.',
-      '',
-      'Rogamos preparar el corazón y confirmar asistencia con su maestro o líder de sector.',
-    ].join('\n'),
+    body,
+    bodyRich: legacyCardBodyToRichText(body),
     eventDate: '2027-12-04',
     eventTime: '09:00',
     location: 'Salida desde el templo principal — recorrido por la calle principal',
@@ -160,19 +177,28 @@ export function createParadaNinoCristianoSample(): ChurchCard {
 export function createEmptyCard(template: ChurchCardTemplate = 'invitacion'): ChurchCard {
   const def = getCardTemplateDefinition(template)
   const now = new Date().toISOString()
+  const isFriend = getCardLayout(template) === 'friend'
 
   return {
     id: uuidv4(),
     template,
     title: def.defaultTitle,
-    subtitle: '',
+    showTitle: true,
+    subtitle: isFriend ? (def.defaultSubtitle ?? '') : '',
     recipient: '',
+    recipientLabel: isFriend ? undefined : 'Para:',
+    greeting: isFriend ? def.defaultGreeting : undefined,
+    quote: isFriend ? def.defaultQuote : undefined,
+    quoteReference: isFriend ? def.defaultQuoteReference : undefined,
+    friendSignature: isFriend ? def.defaultFriendSignature : undefined,
+    eventDateLabel: isFriend ? def.defaultEventDateLabel : undefined,
     body: def.defaultBody,
+    bodyRich: isFriend ? undefined : legacyCardBodyToRichText(def.defaultBody),
     closing: def.defaultClosing,
     eventDate: '',
-    eventTime: '',
+    eventTime: isFriend ? (def.defaultEventTime ?? '') : '',
     location: '',
-    showEventBlock: true,
+    showEventBlock: !isFriend,
     documentDate: getDefaultCardDocumentDate(),
     fontScale: 1,
     createdAt: now,
@@ -211,6 +237,73 @@ export function formatCardEventDate(dateStr: string): string {
     return format(new Date(dateStr + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })
   } catch {
     return dateStr
+  }
+}
+
+export function duplicateChurchCard(card: ChurchCard): ChurchCard {
+  const now = new Date().toISOString()
+  const copy = structuredClone(card)
+  const title = copy.title.trim()
+  return {
+    ...copy,
+    id: uuidv4(),
+    title: title ? `${title} (copia)` : copy.title,
+    signatures: copy.signatures?.map((signature) => ({ ...signature, id: uuidv4() })),
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function createEmptySignature(): CardSignature {
+  return {
+    id: uuidv4(),
+    name: '',
+    title: '',
+    showLine: true,
+    showName: true,
+    showTitle: true,
+  }
+}
+
+export function getCardSignatures(card: ChurchCard): CardSignature[] {
+  return card.signatures ?? []
+}
+
+export function signatureShowsLine(signature: CardSignature): boolean {
+  return signature.showLine !== false
+}
+
+export function signatureShowsName(signature: CardSignature): boolean {
+  return signature.showName !== false && Boolean(signature.name.trim())
+}
+
+export function signatureShowsTitle(signature: CardSignature): boolean {
+  return signature.showTitle !== false && Boolean(signature.title?.trim())
+}
+
+export function isSignatureVisible(signature: CardSignature): boolean {
+  return (
+    signatureShowsLine(signature) ||
+    signatureShowsName(signature) ||
+    signatureShowsTitle(signature)
+  )
+}
+
+export function getVisibleCardSignatures(card: ChurchCard): CardSignature[] {
+  return getCardSignatures(card).filter(isSignatureVisible)
+}
+
+export function fillSignatureFromMember(
+  signature: CardSignature,
+  member: Member,
+  positions: MemberPosition[],
+): CardSignature {
+  const positionName = getPositionName(positions, member.positionId)
+  return {
+    ...signature,
+    memberId: member.id,
+    name: member.name,
+    title: positionName ?? signature.title ?? '',
   }
 }
 

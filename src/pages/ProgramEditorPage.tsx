@@ -16,6 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { ArrowLeft, ArrowUpDown, Download, Eye, ImageDown, Link2, Plus } from 'lucide-react'
+import { v4 as uuidv4 } from 'uuid'
 import { useApp } from '@/context/AppContext'
 import { AssignmentCounter } from '@/components/AssignmentCounter'
 import { BirthdaysSection } from '@/components/BirthdaysSection'
@@ -32,6 +33,12 @@ import { downloadProgramPdf } from '@/lib/download-program-pdf'
 import { getPdfFontScale, setPdfFontScale } from '@/lib/pdf-font-scale'
 import { buildProgramPreviewUrl } from '@/lib/program-preview-url'
 import { getProgramIssues, isProgramReadyToComplete } from '@/lib/program-validation'
+import {
+  dayEventToTemplateEvent,
+  isEventInWeekTemplate,
+  removeTemplateEvent,
+  upsertTemplateEvent,
+} from '@/lib/week-template-sync'
 import {
   createEmptyEvent,
   findProgramForWeek,
@@ -52,7 +59,8 @@ const ProgramPdfPreview = lazy(() =>
 export function ProgramEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { getProgram, updateProgram, programs, members, settings } = useApp()
+  const { getProgram, updateProgram, programs, members, settings, data, updateWeekTemplate } =
+    useApp()
   const program = id ? getProgram(id) : undefined
   const [activeDay, setActiveDay] = useState('0')
   const [generating, setGenerating] = useState(false)
@@ -144,6 +152,40 @@ export function ProgramEditorPage() {
     updateDay(dayIndex, {
       ...day,
       events: day.events.map((e) => (e.id === eventId ? event : e)),
+    })
+
+    if (event.templateEventId && isEventInWeekTemplate(data.weekTemplate, event.templateEventId)) {
+      const templateEvent = dayEventToTemplateEvent(event, event.templateEventId)
+      updateWeekTemplate(upsertTemplateEvent(data.weekTemplate, dayIndex, templateEvent))
+    }
+  }
+
+  const setEventRecurring = (dayIndex: number, eventId: string, recurring: boolean) => {
+    const day = program.days[dayIndex]
+    const event = day.events.find((entry) => entry.id === eventId)
+    if (!event) return
+
+    if (recurring) {
+      const templateEventId = event.templateEventId ?? uuidv4()
+      const templateEvent = dayEventToTemplateEvent(event, templateEventId)
+      updateWeekTemplate(upsertTemplateEvent(data.weekTemplate, dayIndex, templateEvent))
+      updateDay(dayIndex, {
+        ...day,
+        events: day.events.map((entry) =>
+          entry.id === eventId ? { ...entry, templateEventId } : entry,
+        ),
+      })
+      return
+    }
+
+    if (event.templateEventId) {
+      updateWeekTemplate(removeTemplateEvent(data.weekTemplate, event.templateEventId))
+    }
+    updateDay(dayIndex, {
+      ...day,
+      events: day.events.map((entry) =>
+        entry.id === eventId ? { ...entry, templateEventId: undefined } : entry,
+      ),
     })
   }
 
@@ -421,6 +463,10 @@ export function ProgramEditorPage() {
                             key={event.id}
                             program={program}
                             event={event}
+                            isRecurring={isEventInWeekTemplate(data.weekTemplate, event.templateEventId)}
+                            onRecurringChange={(recurring) =>
+                              setEventRecurring(day.dayIndex, event.id, recurring)
+                            }
                             collapsed={!expandedEvents.has(event.id)}
                             onToggleCollapsed={() => toggleEventExpanded(event.id)}
                             onUpdate={(updated) => updateEvent(day.dayIndex, event.id, updated)}

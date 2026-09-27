@@ -1,4 +1,5 @@
-import { GripVertical, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { GripVertical, Plus, Trash2 } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -19,10 +20,12 @@ import { CSS } from '@dnd-kit/utilities'
 import { FIXED_ROLES } from '@/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { MemberPicker, MultiMemberPicker } from '@/components/MemberPicker'
 import { PENDING_ASSIGNMENT_LABEL } from '@/lib/program-utils'
+import { createCustomRoleId, getAssignmentRoleDef, isCustomRoleId } from '@/lib/role-utils'
 import { cn } from '@/lib/utils'
 import type { DayEvent, Member, RoleAssignment, RoleId, WeeklyProgram } from '@/types'
 
@@ -39,6 +42,9 @@ export function RoleAssignmentEditor({
   event,
   onUpdateAssignments,
 }: RoleAssignmentEditorProps) {
+  const [customRoleName, setCustomRoleName] = useState('')
+  const [customAllowMultiple, setCustomAllowMultiple] = useState(false)
+
   const getAssignment = (roleId: RoleId): RoleAssignment | undefined =>
     event.assignments.find((a) => a.roleId === roleId)
 
@@ -47,6 +53,7 @@ export function RoleAssignmentEditor({
     roleName: string,
     membersList: string[],
     assignOnEventDay = false,
+    allowMultiple?: boolean,
   ) => {
     const index = event.assignments.findIndex((a) => a.roleId === roleId)
 
@@ -55,11 +62,15 @@ export function RoleAssignmentEditor({
       return
     }
 
+    const existing = index === -1 ? undefined : event.assignments[index]
     const updated: RoleAssignment = {
       roleId,
       roleName,
       members: assignOnEventDay ? [] : membersList,
       ...(assignOnEventDay ? { assignOnEventDay: true } : {}),
+      ...(isCustomRoleId(roleId)
+        ? { allowMultiple: allowMultiple ?? existing?.allowMultiple ?? false }
+        : {}),
     }
 
     if (index === -1) {
@@ -73,13 +84,13 @@ export function RoleAssignmentEditor({
   }
 
   const setAssignOnEventDay = (roleId: RoleId, roleName: string, assignOnEventDay: boolean) => {
+    const existing = event.assignments.find((a) => a.roleId === roleId)
     if (assignOnEventDay) {
-      updateRole(roleId, roleName, [], true)
+      updateRole(roleId, roleName, [], true, existing?.allowMultiple)
       return
     }
-    const existing = event.assignments.find((a) => a.roleId === roleId)
-    const members = existing?.members.some((m) => m.trim()) ? existing.members : ['']
-    updateRole(roleId, roleName, members, false)
+    const memberList = existing?.members.some((m) => m.trim()) ? existing.members : ['']
+    updateRole(roleId, roleName, memberList, false, existing?.allowMultiple)
   }
 
   const addRole = (roleId: RoleId) => {
@@ -89,6 +100,24 @@ export function RoleAssignmentEditor({
       ...event.assignments,
       { roleId, roleName: role.name, members: [''] },
     ])
+  }
+
+  const addCustomRole = () => {
+    const name = customRoleName.trim()
+    if (!name) return
+
+    const roleId = createCustomRoleId()
+    onUpdateAssignments([
+      ...event.assignments,
+      {
+        roleId,
+        roleName: name,
+        members: [''],
+        allowMultiple: customAllowMultiple,
+      },
+    ])
+    setCustomRoleName('')
+    setCustomAllowMultiple(false)
   }
 
   const removeRole = (roleId: RoleId) => {
@@ -136,7 +165,7 @@ export function RoleAssignmentEditor({
 
       {event.assignments.length === 0 && (
         <p className="text-sm text-stone-500">
-          Agrega partes como Dirige, Mensaje, Himnos, etc.
+          Agrega partes como Dirige, Mensaje, Himnos, o una parte personalizada.
         </p>
       )}
 
@@ -151,26 +180,57 @@ export function RoleAssignmentEditor({
         >
           <div className="space-y-3">
             {event.assignments.map((assignment) => {
-              const roleDef = FIXED_ROLES.find((r) => r.id === assignment.roleId)
-              if (!roleDef) return null
+              const roleDef = getAssignmentRoleDef(assignment)
+              const isCustom = isCustomRoleId(assignment.roleId)
 
               return (
                 <SortableRoleAssignment
                   key={assignment.roleId}
                   assignment={assignment}
                   roleDef={roleDef}
+                  isCustom={isCustom}
                   event={event}
                   program={program}
                   members={members}
                   onRemove={() => removeRole(assignment.roleId)}
+                  onRoleNameChange={(roleName) =>
+                    updateRole(
+                      assignment.roleId,
+                      roleName,
+                      assignment.members,
+                      assignment.assignOnEventDay,
+                      assignment.allowMultiple,
+                    )
+                  }
+                  onAllowMultipleChange={(allowMultiple) =>
+                    updateRole(
+                      assignment.roleId,
+                      assignment.roleName,
+                      assignment.members.length > 0 ? assignment.members : [''],
+                      assignment.assignOnEventDay,
+                      allowMultiple,
+                    )
+                  }
                   onAssignOnEventDayChange={(checked) =>
                     setAssignOnEventDay(assignment.roleId, assignment.roleName, checked)
                   }
                   onMembersChange={(vals) =>
-                    updateRole(assignment.roleId, assignment.roleName, vals)
+                    updateRole(
+                      assignment.roleId,
+                      assignment.roleName,
+                      vals,
+                      false,
+                      assignment.allowMultiple,
+                    )
                   }
                   onSingleMemberChange={(name) =>
-                    updateRole(assignment.roleId, assignment.roleName, [name])
+                    updateRole(
+                      assignment.roleId,
+                      assignment.roleName,
+                      [name],
+                      false,
+                      assignment.allowMultiple,
+                    )
                   }
                 />
               )
@@ -178,17 +238,63 @@ export function RoleAssignmentEditor({
           </div>
         </SortableContext>
       </DndContext>
+
+      <div className="space-y-3 border-t border-stone-200 pt-4">
+        <Label className="text-sm font-semibold">Parte personalizada</Label>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Label htmlFor={`custom-role-${event.id}`} className="text-xs text-stone-600">
+              Nombre de la parte
+            </Label>
+            <Input
+              id={`custom-role-${event.id}`}
+              placeholder="Ej: Oración de apertura, Testimonio"
+              value={customRoleName}
+              onChange={(e) => setCustomRoleName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addCustomRole()
+                }
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0"
+            disabled={!customRoleName.trim()}
+            onClick={addCustomRole}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Agregar
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`custom-allow-multiple-${event.id}`}
+            checked={customAllowMultiple}
+            onCheckedChange={setCustomAllowMultiple}
+          />
+          <Label htmlFor={`custom-allow-multiple-${event.id}`} className="text-sm font-normal">
+            Varias personas
+          </Label>
+        </div>
+      </div>
     </div>
   )
 }
 
 interface SortableRoleAssignmentProps {
   assignment: RoleAssignment
-  roleDef: (typeof FIXED_ROLES)[number]
+  roleDef: ReturnType<typeof getAssignmentRoleDef>
+  isCustom: boolean
   event: DayEvent
   program: WeeklyProgram
   members: Member[]
   onRemove: () => void
+  onRoleNameChange: (roleName: string) => void
+  onAllowMultipleChange: (allowMultiple: boolean) => void
   onAssignOnEventDayChange: (checked: boolean) => void
   onMembersChange: (vals: string[]) => void
   onSingleMemberChange: (name: string) => void
@@ -197,10 +303,13 @@ interface SortableRoleAssignmentProps {
 function SortableRoleAssignment({
   assignment,
   roleDef,
+  isCustom,
   event,
   program,
   members,
   onRemove,
+  onRoleNameChange,
+  onAllowMultipleChange,
   onAssignOnEventDayChange,
   onMembersChange,
   onSingleMemberChange,
@@ -234,17 +343,46 @@ function SortableRoleAssignment({
           >
             <GripVertical className="h-4 w-4" />
           </button>
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="font-medium break-words">{assignment.roleName}</span>
-            <Badge variant="outline" className="text-xs">
-              {roleDef.allowMultiple ? 'Varias personas' : 'Una persona'}
-            </Badge>
+          <div className="min-w-0 flex-1 space-y-2">
+            {isCustom ? (
+              <Input
+                value={assignment.roleName}
+                onChange={(e) => onRoleNameChange(e.target.value)}
+                placeholder="Nombre de la parte"
+                className="font-medium"
+              />
+            ) : (
+              <span className="font-medium break-words">{assignment.roleName}</span>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {roleDef.allowMultiple ? 'Varias personas' : 'Una persona'}
+              </Badge>
+              {isCustom ? (
+                <Badge variant="secondary" className="text-xs">
+                  Personalizada
+                </Badge>
+              ) : null}
+            </div>
           </div>
         </div>
         <Button type="button" variant="ghost" size="icon" onClick={onRemove}>
           <Trash2 className="h-4 w-4 text-stone-400" />
         </Button>
       </div>
+
+      {isCustom ? (
+        <div className="mb-3 flex items-center gap-2">
+          <Switch
+            id={`allow-multiple-${assignment.roleId}`}
+            checked={assignment.allowMultiple === true}
+            onCheckedChange={onAllowMultipleChange}
+          />
+          <Label htmlFor={`allow-multiple-${assignment.roleId}`} className="text-sm font-normal">
+            Varias personas
+          </Label>
+        </div>
+      ) : null}
 
       <div className="mb-3 flex min-w-0 items-start gap-2">
         <Switch
